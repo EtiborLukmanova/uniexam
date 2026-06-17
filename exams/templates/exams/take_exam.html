@@ -1,0 +1,526 @@
+{% extends 'exams/base.html' %}
+
+{% block title %}{{ exam.title }} | UniExam{% endblock %}
+
+{% block extra_css %}
+<style>
+    body.exam-locked {
+        user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+    }
+
+    .exam-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        padding: 1.5rem 0;
+        position: sticky;
+        top: 4.5rem;
+        z-index: 100;
+        box-shadow: var(--shadow-md);
+    }
+
+    .timer-display {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1.5rem;
+        color: white;
+        font-weight: 600;
+        font-size: 1.25rem;
+        display: inline-block;
+    }
+
+    .timer-display.warning { background: rgba(245, 158, 11, 0.35); }
+    .timer-display.danger { background: rgba(239, 68, 68, 0.4); }
+
+    .question-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .question-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: var(--primary);
+        border-radius: 0.5rem;
+        color: white;
+        font-weight: 700;
+    }
+
+    .question-text {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .choice-item {
+        display: block;
+        background: var(--gray-50);
+        border: 2px solid var(--gray-200);
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .choice-item:hover {
+        border-color: var(--primary);
+        background: rgba(79, 70, 229, 0.05);
+    }
+
+    .choice-label { margin-left: 0.5rem; }
+
+    .text-answer {
+        width: 100%;
+        border: 2px solid var(--gray-200);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        min-height: 150px;
+        user-select: text;
+        -webkit-user-select: text;
+    }
+
+    .code-answer {
+        width: 100%;
+        border: 2px solid var(--gray-200);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        font-family: Consolas, monospace;
+        background: #1e293b;
+        color: #e2e8f0;
+        min-height: 250px;
+        user-select: text;
+        -webkit-user-select: text;
+    }
+
+    .sample-box {
+        background: var(--gray-100);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .sample-box pre {
+        margin: 0;
+        white-space: pre-wrap;
+    }
+
+    .question-type-badge {
+        padding: 0.25rem 0.625rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-mcq { background: #dbeafe; color: #1e40af; }
+    .badge-text { background: #d1fae5; color: #065f46; }
+    .badge-code { background: #fef3c7; color: #92400e; }
+    .badge-sql { background: #fce7f3; color: #9d174d; }
+
+    .btn-submit-exam {
+        background: #10b981;
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 1rem 2rem;
+        border-radius: 0.75rem;
+        font-size: 1.125rem;
+    }
+
+    .security-warning {
+        background: #fff7ed;
+        border: 1px solid #fdba74;
+        color: #9a3412;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        margin-top: 1rem;
+        font-weight: 600;
+    }
+
+    .exam-start-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.96);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .exam-start-box {
+        background: white;
+        max-width: 520px;
+        width: 100%;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .exam-start-box h2 {
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+
+    .exam-start-box p {
+        color: var(--gray-600);
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-start-secure {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.9rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block nav_brand %}{{ exam.title }}{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+
+{% block nav_links %}
+<li class="nav-item">
+    <span class="nav-link text-white">{{ exam.subject.name }}</span>
+</li>
+<li class="nav-item">
+    <span class="nav-link text-white">{{ exam.duration_minutes }} min</span>
+</li>
+{% endblock %}
+
+{% block content %}
+
+<div id="exam-data" data-duration="{{ exam.duration_minutes }}"></div>
+
+<div id="exam-start-overlay" class="exam-start-overlay">
+    <div class="exam-start-box">
+        <h2>Start Secure Exam</h2>
+        <p>
+            During the exam, copying, pasting, right-clicking, leaving the tab,
+            and exiting fullscreen are restricted.
+        </p>
+        <button type="button" class="btn-start-secure" onclick="startSecureExam()">
+            Start Exam in Fullscreen
+        </button>
+    </div>
+</div>
+
+<div class="exam-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h4 class="text-white mb-0 fw-bold">{{ exam.title }}</h4>
+
+                <div class="security-warning d-none" id="security-warning">
+                    Warning: You left the secure exam screen once.
+                </div>
+            </div>
+
+            <div class="col-md-6 text-md-end">
+                <div class="timer-display" id="timer">
+                    Time left: <span id="timer-text">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <form method="post" id="exam-form">
+        {% csrf_token %}
+        <input type="hidden" name="code" value="{{ request.GET.code }}">
+        <input type="hidden" name="security_warnings" id="security-warnings-input" value="0">
+
+        {% for question in questions %}
+            <div class="question-card">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="question-number">{{ forloop.counter }}</span>
+
+                    <span class="question-type-badge
+                        {% if question.question_type == 'mcq' %}badge-mcq
+                        {% elif question.question_type == 'text' %}badge-text
+                        {% elif question.question_type == 'code' %}badge-code
+                        {% elif question.question_type == 'sql' %}badge-sql
+                        {% endif %}">
+                        {{ question.get_question_type_display }}
+                    </span>
+                </div>
+
+                <h5 class="question-text">{{ question.text }}</h5>
+
+                {% if question.question_type == 'mcq' %}
+                    {% for choice in question.choice_set.all %}
+                        <label class="choice-item">
+                            <input type="radio"
+                                   name="question_{{ question.id }}"
+                                   value="{{ choice.id }}"
+                                   required>
+                            <span class="choice-label">{{ choice.text }}</span>
+                        </label>
+                    {% empty %}
+                        <p class="text-danger">No choices added for this question.</p>
+                    {% endfor %}
+
+                {% elif question.question_type == 'text' %}
+                    <textarea name="text_{{ question.id }}"
+                              class="text-answer"
+                              placeholder="Write your answer here..."
+                              required></textarea>
+
+                {% elif question.question_type == 'code' %}
+                    {% if question.sample_input %}
+                        <div class="sample-box">
+                            <strong>Sample Input</strong>
+                            <pre>{{ question.sample_input }}</pre>
+                        </div>
+                    {% endif %}
+
+                    {% if question.sample_output %}
+                        <div class="sample-box">
+                            <strong>Sample Output</strong>
+                            <pre>{{ question.sample_output }}</pre>
+                        </div>
+                    {% endif %}
+
+                    <textarea name="code_{{ question.id }}"
+                              class="code-answer"
+                              placeholder="Write your Python code here..."
+                              spellcheck="false"
+                              required></textarea>
+
+                {% elif question.question_type == 'sql' %}
+                    {% if question.sample_input %}
+                        <div class="sample-box">
+                            <strong>Sample Table/Data</strong>
+                            <pre>{{ question.sample_input }}</pre>
+                        </div>
+                    {% endif %}
+
+                    {% if question.sample_output %}
+                        <div class="sample-box">
+                            <strong>Expected Result Example</strong>
+                            <pre>{{ question.sample_output }}</pre>
+                        </div>
+                    {% endif %}
+
+                    <textarea name="code_{{ question.id }}"
+                              class="code-answer"
+                              placeholder="Write your SQL query here..."
+                              spellcheck="false"
+                              required></textarea>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="alert alert-warning">
+                No questions have been added for this exam yet.
+            </div>
+        {% endfor %}
+
+        {% if questions %}
+            <div class="text-center mt-5">
+                <button type="submit" class="btn btn-submit-exam">
+                    Submit Exam
+                </button>
+            </div>
+        {% endif %}
+    </form>
+</div>
+
+<script>
+    const examData = document.getElementById("exam-data");
+    let duration = Number(examData.dataset.duration) * 60;
+    let examStarted = false;
+
+    let fullscreenViolations = 0;
+    const maxFullscreenViolations = 3;
+
+    function requestFullscreenMode() {
+        const elem = document.documentElement;
+
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+    }
+
+    function startSecureExam() {
+        examStarted = true;
+
+        document.body.classList.add("exam-locked");
+        document.getElementById("exam-start-overlay").style.display = "none";
+
+        requestFullscreenMode();
+
+        // FIX #11: Start countdown only after exam begins
+        startTimer();
+    }
+
+    function updateTimer() {
+        const minutes = Math.floor(duration / 60);
+        const seconds = duration % 60;
+
+        document.getElementById("timer-text").textContent =
+            minutes.toString().padStart(2, "0") + ":" +
+            seconds.toString().padStart(2, "0");
+
+        const timerDisplay = document.getElementById("timer");
+
+        if (duration <= 300) {
+            timerDisplay.classList.add("danger");
+        } else if (duration <= 600) {
+            timerDisplay.classList.add("warning");
+        }
+
+        if (duration <= 0) {
+            document.getElementById("exam-form").submit();
+            return;
+        }
+
+        duration--;
+    }
+
+    document.addEventListener("fullscreenchange", function () {
+
+        if (!examStarted) return;
+
+        if (!document.fullscreenElement) {
+
+            fullscreenViolations++;
+
+            document.getElementById("security-warnings-input").value =
+                fullscreenViolations;
+
+            if (fullscreenViolations >= maxFullscreenViolations) {
+
+                alert(
+                    "Exam terminated. You exited fullscreen mode too many times."
+                );
+
+                document.getElementById("exam-form").submit();
+                return;
+            }
+
+            alert(
+                "Fullscreen mode is mandatory.\n\nViolation " +
+                fullscreenViolations +
+                " of " +
+                maxFullscreenViolations
+            );
+
+            setTimeout(function () {
+                requestFullscreenMode();
+            }, 300);
+        }
+    });
+
+    // FIX #8: Warn on tab switch; only submit after too many violations
+    let tabViolations = 0;
+    const maxTabViolations = 2;
+
+    document.addEventListener("visibilitychange", function () {
+
+        if (!examStarted) return;
+
+        if (document.hidden) {
+            tabViolations++;
+
+            document.getElementById("security-warnings-input").value =
+                fullscreenViolations + tabViolations;
+
+            if (tabViolations >= maxTabViolations) {
+                alert("Exam terminated. You left the exam tab too many times.");
+                document.getElementById("exam-form").submit();
+                return;
+            }
+
+            alert(
+                "Warning: Leaving the exam tab is not allowed.\n\n" +
+                "Tab violation " + tabViolations + " of " + maxTabViolations + "."
+            );
+        }
+    });
+
+    document.addEventListener("contextmenu", function (e) {
+        if (examStarted) {
+            e.preventDefault();
+            alert("Right-click is disabled during the exam.");
+        }
+    });
+
+    // FIX #12: Block copy/paste only outside of answer input fields.
+    // Students need to paste into code editors.
+    function isAnswerField(target) {
+        return target.tagName === "TEXTAREA" || target.tagName === "INPUT";
+    }
+
+    document.addEventListener("copy", function (e) {
+        if (examStarted && !isAnswerField(e.target)) {
+            e.preventDefault();
+            alert("Copying is disabled during the exam.");
+        }
+    });
+
+    document.addEventListener("cut", function (e) {
+        if (examStarted && !isAnswerField(e.target)) {
+            e.preventDefault();
+            alert("Cutting is disabled during the exam.");
+        }
+    });
+
+    document.addEventListener("paste", function (e) {
+        if (examStarted && !isAnswerField(e.target)) {
+            e.preventDefault();
+            alert("Pasting is disabled during the exam.");
+        }
+    });
+
+    document.addEventListener("keydown", function (e) {
+
+        if (!examStarted) return;
+
+        const key = e.key.toLowerCase();
+
+        if (
+            (e.ctrlKey && ["c", "x", "v", "u", "s", "p", "a"].includes(key)) ||
+            (e.ctrlKey && e.shiftKey && ["i", "j", "c"].includes(key)) ||
+            e.key === "F12"
+        ) {
+            e.preventDefault();
+
+            alert(
+                "This shortcut is disabled during the exam."
+            );
+        }
+    });
+
+    // FIX #11: Timer only starts when the student clicks "Start Exam"
+    // (startSecureExam() calls startTimer)
+    let timerInterval = null;
+
+    function startTimer() {
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+
+</script>
+
+{% endblock %}

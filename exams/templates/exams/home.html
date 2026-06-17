@@ -1,0 +1,606 @@
+{% extends 'exams/base.html' %}
+
+{% block title %}Home | UniExam{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-section {
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 80%;
+        height: 150%;
+        background: radial-gradient(ellipse, rgba(79, 70, 229, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .hero-section::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -10%;
+        width: 60%;
+        height: 100%;
+        background: radial-gradient(ellipse, rgba(6, 182, 212, 0.06) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: 2rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--gray-600);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--gray-900);
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-title .highlight {
+        background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-description {
+        font-size: 1.25rem;
+        color: var(--gray-600);
+        max-width: 540px;
+        margin-bottom: 2rem;
+        line-height: 1.7;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .hero-image-container {
+        position: relative;
+    }
+
+    .hero-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--gray-100);
+    }
+
+    .hero-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .hero-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .feature-list li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0;
+        color: var(--gray-700);
+    }
+
+    .feature-list li i {
+        color: var(--success);
+    }
+
+    /* Stats Section */
+    .stats-section {
+        background: white;
+        border-top: 1px solid var(--gray-200);
+        border-bottom: 1px solid var(--gray-200);
+        padding: 3rem 0;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--primary);
+    }
+
+    .stat-text {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Features Section */
+    .features-section {
+        padding: 5rem 0;
+        background: var(--gray-50);
+    }
+
+    .feature-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid var(--gray-200);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-light);
+    }
+
+    .feature-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .feature-card h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+        color: var(--gray-600);
+        margin-bottom: 0;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 992px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .hero-section {
+            min-height: auto;
+            padding: 4rem 0;
+        }
+        
+        .hero-image-container {
+            margin-top: 3rem;
+        }
+        
+        .feature-card {
+            padding: 1.5rem;
+        }
+        
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+        
+        .hero-description {
+            font-size: 1.125rem;
+        }
+        
+        .hero-badge {
+            font-size: 0.8125rem;
+            padding: 0.375rem 0.875rem;
+        }
+        
+        .hero-card {
+            padding: 1.25rem;
+        }
+        
+        .hero-card-header {
+            padding-bottom: 0.875rem;
+        }
+        
+        .hero-card-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.125rem;
+        }
+        
+        .feature-list li {
+            padding: 0.625rem 0;
+            font-size: 0.9375rem;
+        }
+        
+        .stat-item {
+            padding: 1rem 0;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+        
+        .stat-text {
+            font-size: 0.75rem;
+        }
+        
+        .features-section {
+            padding: 3rem 0;
+        }
+        
+        .features-section .text-center h2 {
+            font-size: 1.5rem;
+        }
+        
+        .features-section .text-center p {
+            font-size: 0.9375rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .hero-title {
+            font-size: 1.75rem;
+            line-height: 1.2;
+        }
+        
+        .hero-description {
+            font-size: 1rem;
+        }
+        
+        .hero-buttons {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .hero-buttons .btn {
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem 1rem;
+        }
+        
+        .hero-section {
+            padding: 3rem 0;
+        }
+        
+        .hero-badge {
+            font-size: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-badge i {
+            font-size: 0.875rem;
+        }
+        
+        .hero-card h5 {
+            font-size: 1rem;
+        }
+        
+        .feature-list li i {
+            font-size: 1rem;
+        }
+        
+        .stats-section {
+            padding: 2rem 0;
+        }
+        
+        .stat-number {
+            font-size: 1.75rem;
+        }
+        
+        .feature-card {
+            padding: 1.25rem;
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.125rem;
+        }
+        
+        .feature-card p {
+            font-size: 0.9375rem;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .hero-title {
+            font-size: 1.5rem;
+        }
+        
+        .hero-description {
+            font-size: 0.9375rem;
+        }
+        
+        .hero-badge {
+            font-size: 0.6875rem;
+            padding: 0.375rem 0.75rem;
+        }
+        
+        .hero-badge i {
+            font-size: 0.75rem;
+        }
+        
+        .hero-buttons .btn {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+        }
+        
+        .hero-card {
+            padding: 1rem;
+        }
+        
+        .hero-card-header {
+            padding: 0.75rem;
+        }
+        
+        .hero-card-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+        }
+        
+        .hero-card h5 {
+            font-size: 0.9375rem;
+        }
+        
+        .hero-card h5 small {
+            font-size: 0.75rem;
+        }
+        
+        .feature-list li {
+            font-size: 0.875rem;
+            padding: 0.5rem 0;
+        }
+        
+        .feature-list li i {
+            font-size: 0.875rem;
+        }
+        
+        .stats-section {
+            padding: 1.5rem 0;
+        }
+        
+        .stat-item {
+            padding: 0.75rem 0;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+        }
+        
+        .stat-text {
+            font-size: 0.6875rem;
+        }
+        
+        .features-section {
+            padding: 2rem 0;
+        }
+        
+        .features-section .text-center h2 {
+            font-size: 1.25rem;
+        }
+        
+        .features-section .text-center p {
+            font-size: 0.875rem;
+        }
+        
+        .feature-card {
+            padding: 1rem;
+        }
+        
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.125rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature-card h3 {
+            font-size: 1rem;
+        }
+        
+        .feature-card p {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="hero-badge slide-up">
+                    <i class="bi bi-mortarboard-fill"></i>
+                    Smart University Exam System
+                </div>
+                
+                <h1 class="hero-title slide-up">
+                    Modern Online <span class="highlight">Exam Platform</span> for Universities
+                </h1>
+                
+                <p class="hero-description slide-up">
+                    A comprehensive platform for managing midterm and final exams. 
+                    Teachers can easily create and manage exams while students take tests online with automatic grading.
+                </p>
+                
+                <div class="hero-buttons slide-up">
+                    <a href="{% url 'login' %}" class="btn btn-primary-custom">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                    </a>
+
+        
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="hero-image-container slide-up">
+                    <div class="hero-card">
+                        <div class="hero-card-header">
+                            <div class="hero-card-icon bg-gradient-primary text-white">
+                                <i class="bi bi-check-circle-fill"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold">Project Features</h5>
+                                <small class="text-muted">What's included</small>
+                            </div>
+                        </div>
+                        
+                        <ul class="feature-list">
+                            <li>
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Secure student authentication</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Teacher exam management</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Multiple question types</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Automatic grading system</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>Comprehensive result tracking</span>
+                            </li>
+                            <li>
+                                <i class="bi bi-check-circle-fill"></i>
+                                <span>100+ users in database</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-text">Active Users</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-text">Exams Created</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">1000+</div>
+                    <div class="stat-text">Questions</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-text">Availability</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">Why Choose UniExam?</h2>
+            <p class="text-muted">Everything you need for a seamless exam experience</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-gradient-primary text-white">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h3>Secure & Reliable</h3>
+                    <p>Built with security in mind to ensure exam integrity and protect student data.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-gradient-success text-white">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </div>
+                    <h3>Fast Performance</h3>
+                    <p>Lightning-fast response times with optimized code and efficient database queries.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon bg-gradient-warning text-white">
+                        <i class="bi bi-palette-fill"></i>
+                    </div>
+                    <h3>Modern UI/UX</h3>
+                    <p>Clean, intuitive interface designed for the best user experience on any device.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

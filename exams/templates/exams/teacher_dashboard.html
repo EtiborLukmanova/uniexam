@@ -1,0 +1,534 @@
+{% extends 'exams/base.html' %}
+
+{% block title %}Teacher Dashboard | UniExam{% endblock %}
+
+{% block extra_css %}
+<style>
+    .teacher-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .teacher-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, transparent 70%);
+        transform: translate(30%, -30%);
+    }
+
+    .teacher-header .container {
+        position: relative;
+        z-index: 1;
+    }
+
+    .stat-card-teacher {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .stat-card-teacher:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon-teacher {
+        width: 56px;
+        height: 56px;
+        border-radius: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+
+    .table-card-header {
+        background: var(--gray-50);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .table-custom-teacher {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-custom-teacher th {
+        font-weight: 600;
+        color: var(--gray-600);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 1rem 1.5rem;
+        text-align: left;
+        background: var(--gray-50);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .table-custom-teacher td {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--gray-100);
+        vertical-align: middle;
+    }
+
+    .table-custom-teacher tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .table-custom-teacher tbody tr:hover {
+        background: var(--gray-50);
+    }
+
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        font-size: 0.875rem;
+    }
+
+    .rank-1 { background: #fef3c7; color: #92400e; }
+    .rank-2 { background: #f1f5f9; color: #475569; }
+    .rank-3 { background: #fed7aa; color: #78350f; }
+
+    .chart-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        padding: 1.5rem;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 320px;
+    }
+
+    .btn-export {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.4);
+        color: white;
+    }
+
+    .teacher-search-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .badge-custom {
+        padding: 0.35rem 0.75rem;
+        font-weight: 600;
+        font-size: 0.75rem;
+        border-radius: 2rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .badge-success-custom {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-warning-custom {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-danger-custom {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    @media (max-width: 992px) {
+        .stat-card-teacher { padding: 1.25rem; }
+        .stat-icon-teacher {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+        }
+        .stat-value { font-size: 1.5rem !important; }
+        .stat-label { font-size: 0.8125rem; }
+    }
+
+    @media (max-width: 768px) {
+        .teacher-header {
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
+        }
+        .teacher-header h1 { font-size: 1.5rem; }
+        .teacher-header p { font-size: 0.9375rem; }
+        .teacher-header .col-md-4 {
+            margin-top: 1rem;
+            text-align: left !important;
+        }
+        .btn-export {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+        }
+        .stat-card-teacher {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        .stat-icon-teacher {
+            width: 40px;
+            height: 40px;
+            font-size: 1.125rem;
+        }
+        .table-card {
+            margin-bottom: 1rem;
+            border-radius: 0.75rem;
+            overflow-x: auto;
+        }
+        .table-card-header { padding: 1rem 1.25rem; }
+        .table-card-header h5 { font-size: 1rem; }
+        .table-custom-teacher th,
+        .table-custom-teacher td {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+        }
+        .chart-card {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .chart-wrapper { height: 260px; }
+        .rank-badge {
+            width: 28px;
+            height: 28px;
+            font-size: 0.8125rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .teacher-header {
+            padding: 1.25rem 0;
+            text-align: center;
+        }
+        .teacher-header h1 { font-size: 1.375rem; }
+        .teacher-header .col-md-8 { text-align: center !important; }
+        .stat-card-teacher .d-flex {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.75rem !important;
+        }
+        .table-custom-teacher { min-width: 650px; }
+        .table-card-header { padding: 0.875rem 1rem; }
+        .chart-card { padding: 0.875rem; }
+    }
+</style>
+{% endblock %}
+
+{% block nav_brand %}UniExam Teacher{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+
+{% block nav_links %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'dashboard' %}">
+            <i class="bi bi-person me-1"></i>Student View
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="/admin/">
+            <i class="bi bi-gear me-1"></i>Admin Panel
+        </a>
+    </li>
+    <li class="nav-item">
+        <form method="post" action="{% url 'logout' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="nav-link btn btn-link p-0">
+                <i class="bi bi-box-arrow-right me-1"></i>Logout
+            </button>
+        </form>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="teacher-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white fw-bold mb-2">
+                    <i class="bi bi-speedometer2 me-2"></i>Teacher Dashboard
+                </h1>
+                <p class="text-white-50 mb-0">Analytics and exam management</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{% url 'export_results_csv' %}" class="btn btn-export">
+                    <i class="bi bi-download me-2"></i>Export Results CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="teacher-search-card">
+        <form method="get">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text"
+                       name="q"
+                       class="form-control border-start-0"
+                       placeholder="Search student, exam, or subject..."
+                       value="{{ query }}">
+                <button class="btn btn-primary" type="submit">Search</button>
+                {% if query %}
+                    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card-teacher">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-teacher bg-gradient-primary text-white">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ total_students }}</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card-teacher">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-teacher bg-gradient-success text-white">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ total_exams }}</div>
+                        <div class="stat-label">Total Exams</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card-teacher">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-teacher bg-gradient-warning text-white">
+                        <i class="bi bi-check2-all"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ total_results }}</div>
+                        <div class="stat-label">Submissions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="stat-card-teacher">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-teacher bg-gradient-danger text-white">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ average_score }}%</div>
+                        <div class="stat-label">Average Score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-card mb-4">
+        <div class="table-card-header">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-bar-chart me-2"></i>Exam Statistics
+            </h5>
+        </div>
+        <table class="table-custom-teacher">
+            <thead>
+                <tr>
+                    <th>Exam</th>
+                    <th>Attempts</th>
+                    <th>Average Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exam in exam_stats %}
+                    <tr>
+                        <td class="fw-semibold">{{ exam.title }}</td>
+                        <td>{{ exam.attempts }}</td>
+                        <td>
+                            <span class="badge-custom {% if exam.avg_score|default:'0'|add:0 >= 60 %}badge-success-custom{% else %}badge-warning-custom{% endif %}">
+                                {{ exam.avg_score|default:"0" }}%
+                            </span>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">No exam statistics available.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="chart-card mb-4">
+        <h5 class="fw-bold mb-4">
+            <i class="bi bi-pie-chart me-2"></i>Performance Overview
+        </h5>
+        <div class="chart-wrapper">
+            <canvas id="examChart"></canvas>
+        </div>
+    </div>
+
+    <div class="table-card mb-4">
+        <div class="table-card-header">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-trophy me-2"></i>Top Students Leaderboard
+            </h5>
+        </div>
+        <table class="table-custom-teacher">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Student</th>
+                    <th>Exams Taken</th>
+                    <th>Total Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in top_students %}
+                    <tr>
+                        <td>
+                            <span class="rank-badge rank-{{ forloop.counter }}">
+                                {{ forloop.counter }}
+                            </span>
+                        </td>
+                        <td class="fw-semibold">{{ student.username }}</td>
+                        <td>{{ student.exams_taken }}</td>
+                        <td>
+                            <span class="fw-bold text-primary">{{ student.total_score }}</span>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">No student results yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-card">
+        <div class="table-card-header">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-clock-history me-2"></i>Recent Submissions
+            </h5>
+        </div>
+        <table class="table-custom-teacher">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Exam</th>
+                    <th>Subject</th>
+                    <th>Score</th>
+                    <th>Submitted At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in recent_results %}
+                    <tr>
+                        <td class="fw-semibold">{{ result.student.username }}</td>
+                        <td>{{ result.exam.title }}</td>
+                        <td>{{ result.exam.subject.name }}</td>
+                        <td>
+                            <span class="badge-custom {% if result.is_passed %}badge-success-custom{% else %}badge-danger-custom{% endif %}">
+                                {{ result.score }} / {{ result.total }}
+                            </span>
+                        </td>
+                        <td class="text-muted">{{ result.submitted_at|date:"M d, Y H:i" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No submissions yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const examLabels = JSON.parse('{{ exam_labels_json|escapejs }}');
+    const examScores = JSON.parse('{{ exam_scores_json|escapejs }}');
+
+    const ctx = document.getElementById('examChart');
+
+    if (ctx && typeof Chart !== 'undefined') {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: examLabels,
+                datasets: [{
+                    label: 'Average Score',
+                    data: examScores,
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

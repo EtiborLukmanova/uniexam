@@ -1,0 +1,673 @@
+{% extends 'exams/base.html' %}
+
+{% block title %}Dashboard | UniExam{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        padding: 2.5rem 0;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .user-info-card, .stat-card-custom, .subject-card, .result-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+    }
+
+    .user-info-card { padding: 1.5rem; }
+
+    .user-avatar {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        font-weight: 700;
+    }
+
+    .stat-card-custom {
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card-custom:hover, .subject-card:hover, .result-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-icon-custom {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .subject-card { margin-bottom: 1.5rem; overflow: hidden; }
+
+    .subject-card-header {
+        background: var(--gray-50);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .subject-card-body { padding: 1.5rem; }
+
+    .exam-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    .exam-item:last-child { border-bottom: none; }
+
+    .exam-meta {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+    }
+
+    .result-card {
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .score-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .score-passed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .score-failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-custom {
+        padding: 0.35rem 0.75rem;
+        font-weight: 600;
+        font-size: 0.75rem;
+        border-radius: 2rem;
+    }
+
+    .badge-completed { background: #d1fae5; color: #065f46; }
+    .badge-available { background: #dbeafe; color: #1e40af; }
+    .badge-locked { background: #fef3c7; color: #92400e; }
+    .badge-closed { background: #fee2e2; color: #991b1b; }
+
+    .btn-exam {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .btn-exam-start {
+        background: var(--primary);
+        color: white;
+        border: none;
+    }
+
+    .btn-exam-disabled {
+        background: var(--gray-200);
+        color: var(--gray-500);
+        border: none;
+        cursor: not-allowed;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .dashboard-header .text-white-50 {
+            font-size: 0.9375rem;
+        }
+        
+        .user-info-card {
+            padding: 1rem;
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            font-size: 1.125rem;
+        }
+        
+        .stat-card-custom {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .stat-icon-custom {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem !important;
+        }
+        
+        .stat-label {
+            font-size: 0.8125rem;
+        }
+        
+        .subject-card {
+            margin-bottom: 1rem;
+        }
+        
+        .subject-card-header {
+            padding: 1rem 1.25rem;
+        }
+        
+        .subject-card-body {
+            padding: 1rem 1.25rem;
+        }
+        
+        .exam-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.875rem 0;
+        }
+        
+        .exam-item h6 {
+            font-size: 1rem;
+        }
+        
+        .exam-meta {
+            font-size: 0.8125rem;
+        }
+        
+        .d-flex.align-items-center.gap-2 {
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 0.75rem !important;
+        }
+        
+        .d-flex.align-items-center.gap-2 form {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .d-flex.align-items-center.gap-2 input[type="text"] {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .d-flex.align-items-center.gap-2 .btn-exam-start {
+            flex-shrink: 0;
+        }
+        
+        .badge-custom {
+            font-size: 0.75rem;
+        }
+        
+        .btn-exam {
+            font-size: 0.8125rem;
+            padding: 0.375rem 0.75rem;
+        }
+        
+        .form-control.form-control-sm {
+            width: 100% !important;
+        }
+        
+        .result-card {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .result-card h6 {
+            font-size: 0.9375rem;
+        }
+        
+        .score-badge {
+            width: 50px;
+            height: 50px;
+            font-size: 1rem;
+        }
+        
+        .input-group {
+            flex-wrap: nowrap;
+        }
+        
+        .input-group-text {
+            padding: 0.625rem 0.75rem;
+        }
+        
+        .input-group .form-control {
+            font-size: 0.9375rem;
+        }
+        
+        .input-group .btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .dashboard-header {
+            padding: 1.25rem 0;
+            text-align: center;
+        }
+        
+        .dashboard-header .col-md-8,
+        .dashboard-header .col-md-4 {
+            text-align: center !important;
+        }
+        
+        .dashboard-header .col-md-4 {
+            margin-top: 1rem;
+        }
+        
+        .user-info-card {
+            display: block !important;
+            text-align: center;
+        }
+        
+        .user-info-card .d-flex {
+            justify-content: center;
+        }
+        
+        .stat-card-custom {
+            padding: 0.875rem;
+        }
+        
+        .stat-icon-custom {
+            width: 36px;
+            height: 36px;
+            font-size: 1.125rem;
+        }
+        
+        .subject-card-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+        }
+        
+        .subject-card-header h5 {
+            font-size: 1.125rem;
+        }
+        
+        .badge-custom {
+            font-size: 0.6875rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .exam-start-form {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+        }
+        
+        .exam-code-input {
+            width: 100% !important;
+        }
+        
+        .exam-start-form .btn-exam-start {
+            width: 100%;
+        }
+        
+        .result-card .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.5rem;
+        }
+        
+        .result-card .score-badge {
+            align-self: flex-start;
+        }
+        
+        .result-card .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        h4.fw-bold {
+            font-size: 1.125rem;
+        }
+        
+        h4.fw-bold i {
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .dashboard-header h1 {
+            font-size: 1.375rem;
+        }
+        
+        .badge-custom {
+            font-size: 0.625rem;
+        }
+        
+        .btn-exam {
+            font-size: 0.75rem;
+            padding: 0.3125rem 0.625rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block nav_brand %}UniExam{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+
+{% block nav_links %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'dashboard' %}">
+        <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+    </a>
+</li>
+
+{% if request.user.is_staff %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'teacher_dashboard' %}">
+        <i class="bi bi-speedometer2 me-1"></i>Teacher Panel
+    </a>
+</li>
+{% endif %}
+
+<li class="nav-item ms-2">
+    <span class="nav-link text-dark">
+        <i class="bi bi-person-circle me-1"></i>{{ request.user.username }}
+    </span>
+</li>
+
+<li class="nav-item">
+    <form method="post" action="{% url 'logout' %}" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="nav-link btn btn-link p-0">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+    </button>
+    </form>
+</li>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="container py-4">
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="dashboard-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white fw-bold mb-2">Student Dashboard</h1>
+                <p class="text-white-50 mb-0">Welcome back, {{ request.user.username }}!</p>
+            </div>
+
+            <div class="col-md-4 text-md-end">
+                <div class="user-info-card d-inline-block">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-avatar">
+                            {{ request.user.username|make_list|first|upper }}
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ request.user.username }}</h6>
+                            <small class="text-muted">{{ profile.university_id }}</small>
+                            <div>
+                                <small class="text-muted">{{ profile.group_name }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card-custom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-custom bg-gradient-primary text-white">
+                        <i class="bi bi-book"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ subjects|length }}</div>
+                        <div class="stat-label">Total Subjects</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="stat-card-custom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-custom bg-gradient-success text-white">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ results|length }}</div>
+                        <div class="stat-label">Completed Exams</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-muted"></i>
+            </span>
+
+            <input type="text"
+                   name="q"
+                   class="form-control border-start-0"
+                   placeholder="Search exams..."
+                   value="{{ query }}">
+
+            <button class="btn btn-primary" type="submit">Search</button>
+
+            {% if query %}
+                <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <h4 class="fw-bold mb-4">
+        <i class="bi bi-collection me-2"></i>Subjects & Exams
+    </h4>
+
+    {% for subject in subjects %}
+        <div class="subject-card">
+            <div class="subject-card-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-custom bg-gradient-primary text-white">
+                        <i class="bi bi-book-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">{{ subject.name }}</h5>
+                        <small class="text-muted">{{ subject.code }}</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subject-card-body">
+                {% for exam in subject.filtered_exams %}
+                        <div class="exam-item">
+                            <div>
+                                <h6 class="fw-bold mb-1">{{ exam.title }}</h6>
+                                <div class="exam-meta">
+                                    <i class="bi bi-clock me-1"></i>{{ exam.duration_minutes }} minutes
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                {% if exam.id in completed_exam_ids %}
+                                    <span class="badge-custom badge-completed">
+                                        <i class="bi bi-check-circle me-1"></i>Completed
+                                    </span>
+                                    <button class="btn btn-exam btn-exam-disabled" disabled>Done</button>
+
+                                {% elif exam.start_time and now < exam.start_time %}
+                                    <span class="badge-custom badge-locked">
+                                        <i class="bi bi-lock me-1"></i>Not Started
+                                    </span>
+                                    <button class="btn btn-exam btn-exam-disabled" disabled>Locked</button>
+
+                                {% elif exam.end_time and now > exam.end_time %}
+                                    <span class="badge-custom badge-closed">
+                                        <i class="bi bi-x-circle me-1"></i>Closed
+                                    </span>
+                                    <button class="btn btn-exam btn-exam-disabled" disabled>Closed</button>
+
+                                {% else %}
+                                    <span class="badge-custom badge-available">
+                                        <i class="bi bi-play-circle me-1"></i>Available
+                                    </span>
+                                    <form method="get" action="{% url 'take_exam' exam.id %}" class="exam-start-form d-inline-flex gap-2">
+                                        <input type="text"
+                                            name="code"
+                                            class="form-control form-control-sm exam-code-input"
+                                            placeholder="Access code"
+                                            required>
+
+                                        <button class="btn btn-exam btn-exam-start">
+                                            Start Exam
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                {% empty %}
+                    <p class="text-muted text-center py-3">
+                        No exams for this subject yet.
+                    </p>
+                {% endfor %}
+            </div>
+        </div>
+    {% empty %}
+        <div class="empty-state">
+            <i class="bi bi-book"></i>
+            <h3>No Subjects Available</h3>
+            <p>There are no subjects available yet.</p>
+        </div>
+    {% endfor %}
+
+    <hr class="my-5">
+
+    <h4 class="fw-bold mb-4">
+        <i class="bi bi-bar-chart me-2"></i>My Results
+    </h4>
+
+    <div class="row">
+        {% for result in results %}
+            <div class="col-md-6 col-lg-4">
+                <div class="result-card">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div>
+                            <h6 class="fw-bold">{{ result.exam.title }}</h6>
+                            <small class="text-muted">{{ result.exam.subject.name }}</small>
+                        </div>
+
+                        <div class="score-badge {% if result.is_passed %}score-passed{% else %}score-failed{% endif %}">
+                            {{ result.percentage }}%
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ result.score }}</strong> / {{ result.total }}
+
+                            {% if result.is_passed %}
+                                <span class="badge bg-success ms-2">Passed</span>
+                            {% else %}
+                                <span class="badge bg-danger ms-2">Failed</span>
+                            {% endif %}
+                        </div>
+
+                        <small class="text-muted">
+                            {{ result.submitted_at|date:"M d, Y" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="bi bi-clipboard-data"></i>
+                    <h3>No Results Yet</h3>
+                    <p>You haven't completed any exams yet.</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if results.has_other_pages %}
+        <div class="mt-4 d-flex justify-content-center">
+            <nav>
+                <ul class="pagination">
+
+                    {% if results.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ results.previous_page_number }}">
+                                Previous
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">{{ results.number }}</span>
+                    </li>
+
+                    {% if results.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}page={{ results.next_page_number }}">
+                                Next
+                            </a>
+                        </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

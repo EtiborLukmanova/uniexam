@@ -1,0 +1,384 @@
+{% extends 'exams/base.html' %}
+
+{% block title %}Login | UniExam{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-section {
+        min-height: calc(100vh - 5rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        position: relative;
+        padding: 2rem 0;
+    }
+
+    .login-section::before {
+        content: '';
+        position: absolute;
+        top: 20%;
+        left: 10%;
+        width: 40%;
+        height: 60%;
+        background: radial-gradient(ellipse, rgba(79, 70, 229, 0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .login-section::after {
+        content: '';
+        position: absolute;
+        bottom: 20%;
+        right: 10%;
+        width: 35%;
+        height: 50%;
+        background: radial-gradient(ellipse, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        max-width: 420px;
+        width: 100%;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .login-icon {
+        width: 72px;
+        height: 72px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
+    }
+
+    .login-icon i {
+        font-size: 2rem;
+        color: white;
+    }
+
+    .login-header h2 {
+        font-weight: 800;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+        color: var(--gray-500);
+        font-size: 0.9375rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label-custom {
+        display: block;
+        font-weight: 600;
+        color: var(--gray-700);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .form-control-custom {
+        width: 100%;
+        border: 2px solid var(--gray-200);
+        border-radius: 0.625rem;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .form-control-custom:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        outline: none;
+    }
+
+    .btn-login {
+        width: 100%;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 1rem;
+        border-radius: 0.625rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.39);
+        margin-top: 0.5rem;
+    }
+
+    .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px 0 rgba(79, 70, 229, 0.4);
+        background: linear-gradient(135deg, var(--primary-dark) 0%, #3730a3 100%);
+        color: white;
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .login-footer p {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        margin-bottom: 0;
+    }
+
+    .login-footer a {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .login-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .back-home {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .back-home:hover {
+        color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+        .login-section {
+            padding: 1.5rem 0;
+            min-height: calc(100vh - 4rem);
+        }
+        
+        .login-card {
+            padding: 2rem 1.5rem;
+            border-radius: 1.25rem;
+        }
+        
+        .login-icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1.25rem;
+        }
+        
+        .login-icon i {
+            font-size: 1.75rem;
+        }
+        
+        .login-header {
+            margin-bottom: 1.5rem;
+        }
+        
+        .login-header h2 {
+            font-size: 1.5rem;
+        }
+        
+        .login-header p {
+            font-size: 0.875rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label-custom {
+            font-size: 0.8125rem;
+        }
+        
+        .form-control-custom {
+            padding: 0.75rem 0.875rem;
+            font-size: 0.9375rem;
+        }
+        
+        .btn-login {
+            padding: 0.875rem;
+            font-size: 0.9375rem;
+        }
+        
+        .login-footer {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+        }
+        
+        .login-footer p {
+            font-size: 0.8125rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .login-section {
+            padding: 1rem 0;
+        }
+        
+        .login-card {
+            padding: 1.5rem 1.25rem;
+            border-radius: 1rem;
+            box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .login-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .login-icon i {
+            font-size: 1.5rem;
+        }
+        
+        .login-header h2 {
+            font-size: 1.375rem;
+        }
+        
+        .login-header p {
+            font-size: 0.8125rem;
+        }
+        
+        .form-control-custom {
+            padding: 0.625rem 0.75rem;
+            font-size: 0.9375rem;
+            border-radius: 0.5rem;
+        }
+        
+        .btn-login {
+            padding: 0.75rem;
+            font-size: 0.9375rem;
+            border-radius: 0.5rem;
+        }
+        
+        .back-home {
+            font-size: 0.8125rem;
+            margin-bottom: 1rem;
+        }
+        
+        .login-footer p {
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .login-card {
+            padding: 1.25rem 1rem;
+        }
+        
+        .login-header h2 {
+            font-size: 1.25rem;
+        }
+        
+        .login-icon {
+            width: 44px;
+            height: 44px;
+        }
+        
+        .login-icon i {
+            font-size: 1.25rem;
+        }
+        
+        .form-control-custom {
+            padding: 0.5rem 0.625rem;
+            font-size: 0.875rem;
+        }
+        
+        .btn-login {
+            padding: 0.625rem;
+            font-size: 0.875rem;
+        }
+        
+        .back-home {
+            font-size: 0.75rem;
+        }
+        
+        .login-footer p {
+            font-size: 0.6875rem;
+        }
+    }
+    
+    @media (max-width: 360px) {
+        .login-card {
+            padding: 1rem 0.875rem;
+            border-radius: 0.75rem;
+        }
+        
+        .login-header h2 {
+            font-size: 1.125rem;
+        }
+        
+        .login-header p {
+            font-size: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<section class="login-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+                <div class="login-card slide-up">
+                    <a href="/" class="back-home">
+                        <i class="bi bi-arrow-left"></i>
+                        Back to Home
+                    </a>
+                    
+                    <div class="login-header">
+                        <div class="login-icon">
+                            <i class="bi bi-mortarboard-fill"></i>
+                        </div>
+                        <h2>Welcome Back</h2>
+                        <p>Sign in to continue to UniExam</p>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label class="form-label-custom">Username</label>
+                            <input type="text" name="username" class="form-control-custom" placeholder="Enter your username" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-custom">Password</label>
+                            <input type="password" name="password" class="form-control-custom" placeholder="Enter your password" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-login">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                        </button>
+                    </form>
+
+                    <div class="login-footer">
+                        <p>Need help? <a href="/admin/">Contact Admin</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

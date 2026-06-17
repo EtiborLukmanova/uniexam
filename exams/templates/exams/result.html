@@ -1,0 +1,497 @@
+{% extends 'exams/base.html' %}
+
+{% block title %}Result | UniExam{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .result-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        transform: translate(30%, -30%);
+    }
+
+    .result-card-main {
+        background: white;
+        border-radius: 1.5rem;
+        box-shadow: var(--shadow-xl);
+        padding: 3rem;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .score-circle {
+        width: 180px;
+        height: 180px;
+        min-width: 180px;
+        max-width: 180px;
+        min-height: 180px;
+        max-height: 180px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .score-circle::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 10px solid var(--gray-200);
+        box-sizing: border-box;
+        z-index: 1;
+    }
+
+    .score-circle.passed {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+
+    .score-circle.passed::before {
+        border-color: #10b981;
+    }
+
+    .score-circle.failed {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    }
+
+    .score-circle.failed::before {
+        border-color: #ef4444;
+    }
+
+    .score-inner {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+    }
+
+    .score-percentage {
+        font-size: 2.7rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .score-divider {
+        width: 34px;
+        height: 2px;
+        margin: 8px auto 6px;
+        background: rgba(0, 0, 0, 0.25);
+    }
+
+    .score-total {
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .score-circle.passed .score-percentage {
+        color: #065f46;
+    }
+
+    .score-circle.failed .score-percentage {
+        color: #991b1b;
+    }
+
+    .score-circle.passed .score-total {
+        color: #047857;
+    }
+
+    .score-circle.failed .score-total {
+        color: #b91c1c;
+    }
+
+    .result-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 2rem;
+        font-weight: 700;
+        font-size: 1.125rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-badge.passed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .result-badge.failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .result-message {
+        font-size: 1.125rem;
+        color: var(--gray-600);
+        margin-bottom: 1.5rem;
+    }
+
+    .exam-title-result {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+
+    .exam-meta-result {
+        color: var(--gray-500);
+        font-size: 0.9375rem;
+    }
+
+    .review-card {
+        background: white;
+        border-radius: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .answer-detail {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: 0.5rem;
+    }
+
+    .answer-label {
+        font-weight: 600;
+        color: var(--gray-700);
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .answer-text {
+        color: var(--gray-800);
+    }
+
+    .correct-answer {
+        color: #065f46;
+    }
+
+    .wrong-answer {
+        color: #991b1b;
+    }
+
+    @media (max-width: 992px) {
+        .result-header {
+            padding: 2rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .result-card-main {
+            padding: 2rem;
+        }
+
+        .score-circle {
+            width: 160px;
+            height: 160px;
+            min-width: 160px;
+            max-width: 160px;
+            min-height: 160px;
+            max-height: 160px;
+        }
+
+        .score-percentage {
+            font-size: 2.4rem;
+        }
+
+        .exam-title-result {
+            font-size: 1.25rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .result-header {
+            padding: 1.5rem 0;
+        }
+
+        .result-card-main {
+            padding: 1.5rem;
+            border-radius: 1rem;
+        }
+
+        .score-circle {
+            width: 145px;
+            height: 145px;
+            min-width: 145px;
+            max-width: 145px;
+            min-height: 145px;
+            max-height: 145px;
+        }
+
+        .score-percentage {
+            font-size: 2.1rem;
+        }
+
+        .score-total {
+            font-size: 0.875rem;
+        }
+
+        .result-badge {
+            font-size: 0.9375rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .exam-title-result {
+            font-size: 1.125rem;
+        }
+
+        .vr {
+            display: none;
+        }
+
+        .d-flex.justify-content-center.gap-4 {
+            flex-direction: column;
+            gap: 1rem !important;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .result-card-main {
+            padding: 1.25rem;
+        }
+
+        .score-circle {
+            width: 125px;
+            height: 125px;
+            min-width: 125px;
+            max-width: 125px;
+            min-height: 125px;
+            max-height: 125px;
+        }
+
+        .score-circle::before {
+            border-width: 8px;
+        }
+
+        .score-percentage {
+            font-size: 1.75rem;
+        }
+
+        .score-total {
+            font-size: 0.75rem;
+        }
+
+        .exam-title-result {
+            font-size: 1rem;
+        }
+
+        .btn-primary-custom {
+            width: 100%;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .score-circle {
+            width: 110px;
+            height: 110px;
+            min-width: 110px;
+            max-width: 110px;
+            min-height: 110px;
+            max-height: 110px;
+        }
+
+        .score-percentage {
+            font-size: 1.45rem;
+        }
+
+        .score-total {
+            font-size: 0.7rem;
+        }
+
+        .result-card-main {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block nav_brand %}UniExam{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+
+{% block nav_links %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'dashboard' %}">
+            <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+        </a>
+    </li>
+    <li class="nav-item">
+        <form method="post" action="{% url 'logout' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="nav-link btn btn-link p-0">
+                <i class="bi bi-box-arrow-right me-1"></i>Logout
+            </button>
+        </form>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="result-header">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="result-card-main slide-up">
+
+                    <div class="score-circle {% if result.is_passed %}passed{% else %}failed{% endif %}">
+                        <div class="score-inner">
+                            <div class="score-percentage">{{ result.percentage|floatformat:1 }}%</div>
+                            <div class="score-divider"></div>
+                            <div class="score-total">/ {{ result.total }}</div>
+                        </div>
+                    </div>
+
+                    <div class="result-badge {% if result.is_passed %}passed{% else %}failed{% endif %}">
+                        <i class="bi bi-{% if result.is_passed %}check-circle-fill{% else %}x-circle-fill{% endif %}"></i>
+                        {% if result.is_passed %}Passed{% else %}Failed{% endif %}
+                    </div>
+
+                    <h2 class="exam-title-result">{{ result.exam.title }}</h2>
+                    <p class="exam-meta-result mb-4">
+                        <i class="bi bi-book me-2"></i>Subject: {{ result.exam.subject.name }}
+                    </p>
+
+                    {% if result.score == result.total %}
+                        <div class="alert alert-success alert-custom">
+                            <i class="bi bi-trophy me-2"></i>Excellent performance! Perfect score!
+                        </div>
+                    {% elif result.percentage >= 80 %}
+                        <div class="alert alert-success alert-custom">
+                            <i class="bi bi-star me-2"></i>Great job! Keep up the excellent work.
+                        </div>
+                    {% elif result.percentage >= 60 %}
+                        <div class="alert alert-primary alert-custom">
+                            <i class="bi bi-emoji-smile me-2"></i>Good job! Keep improving.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning alert-custom">
+                            <i class="bi bi-emoji-frown me-2"></i>Needs more practice. Don't give up!
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-center gap-4 mt-4">
+                        <div>
+                            <div class="fw-bold text-dark">{{ result.score }}</div>
+                            <small class="text-muted">Score</small>
+                        </div>
+                        <div class="vr"></div>
+                        <div>
+                            <div class="fw-bold text-dark">{{ result.total }}</div>
+                            <small class="text-muted">Total</small>
+                        </div>
+                        <div class="vr"></div>
+                        <div>
+                            <div class="fw-bold text-dark">{{ result.submitted_at|date:"M d, Y" }}</div>
+                            <small class="text-muted">Date</small>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <h3 class="fw-bold mb-4">Answer Review</h3>
+
+    {% for answer in answers %}
+        <div class="card shadow-sm border-0 mb-3">
+            <div class="card-body">
+
+                <h5 class="fw-bold">
+                    {{ forloop.counter }}. {{ answer.question.text }}
+                </h5>
+
+                {% if answer.is_correct %}
+                    <span class="badge bg-success mb-3">Correct</span>
+                {% else %}
+                    <span class="badge bg-danger mb-3">Wrong</span>
+                {% endif %}
+
+                <div class="answer-detail">
+                    <div class="answer-label fw-bold">Your Answer:</div>
+
+                    <div class="answer-text {% if not answer.is_correct %}wrong-answer{% endif %}">
+
+                        {% if answer.question.question_type == "mcq" %}
+                            {% if answer.selected_choice %}
+                                {{ answer.selected_choice.text }}
+                            {% else %}
+                                <em class="text-muted">Not answered</em>
+                            {% endif %}
+
+                        {% elif answer.question.question_type == "text" %}
+                            {% if answer.text_answer %}
+                                {{ answer.text_answer }}
+                            {% else %}
+                                <em class="text-muted">Not answered</em>
+                            {% endif %}
+
+                        {% elif answer.question.question_type == "code" or answer.question.question_type == "sql" %}
+                            {% if answer.code_answer %}
+                                <pre class="bg-dark text-light p-3 rounded">{{ answer.code_answer }}</pre>
+
+                                <div class="mt-2">
+                                    <strong>Tests:</strong>
+                                    {{ answer.passed_tests }} / {{ answer.total_tests }}
+                                </div>
+                            {% else %}
+                                <em class="text-muted">Not answered</em>
+                            {% endif %}
+                        {% endif %}
+
+                    </div>
+                </div>
+
+                {% if answer.actual_output %}
+                    <div class="mt-3">
+                        <div class="fw-bold">Test Output:</div>
+                        <pre class="bg-light p-3 rounded">{{ answer.actual_output }}</pre>
+                    </div>
+                {% endif %}
+
+                {% if answer.question.question_type == "mcq" and not answer.is_correct %}
+                    <div class="mt-3 text-success">
+                        <strong>Correct answer:</strong>
+                        {% for choice in answer.question.choice_set.all %}
+                            {% if choice.is_correct %}
+                                {{ choice.text }}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="text-center mt-5">
+        <a href="{% url 'dashboard' %}" class="btn btn-primary-custom">
+            <i class="bi bi-arrow-return-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
