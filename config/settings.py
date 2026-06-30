@@ -59,7 +59,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'uniexam1',
+        'NAME': 'uniexam',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
         'HOST': 'localhost',

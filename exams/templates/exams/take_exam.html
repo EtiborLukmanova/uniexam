@@ -212,11 +212,39 @@
     <div class="exam-start-box">
         <h2>Start Secure Exam</h2>
         <p>
-            During the exam, copying, pasting, right-clicking, leaving the tab,
-            and exiting fullscreen are restricted.
+            The exam must be taken in fullscreen mode.
+
+            Leaving fullscreen three times will automatically submit your exam.
+
+            Leaving the exam tab will immediately submit your exam.
+
+            Right-click, developer tools and restricted keyboard shortcuts are disabled.
         </p>
         <button type="button" class="btn-start-secure" onclick="startSecureExam()">
             Start Exam in Fullscreen
+        </button>
+    </div>
+</div>
+
+<div id="fullscreen-overlay" class="exam-start-overlay" style="display:none;">
+    <div class="exam-start-box">
+        <h2>Fullscreen Required</h2>
+
+        <p>
+            You exited fullscreen mode.
+
+            To continue your exam, return to fullscreen mode.
+
+            After 3 fullscreen exits your exam will be submitted automatically.
+        </p>
+
+        <button
+            type="button"
+            class="btn-start-secure"
+            onclick="resumeExam()">
+
+            Return to Fullscreen
+
         </button>
     </div>
 </div>
@@ -370,9 +398,26 @@
 
         requestFullscreenMode();
 
-        // FIX #11: Start countdown only after exam begins
         startTimer();
     }
+
+    let resumingFullscreen = false;
+
+    function resumeExam() {
+
+        resumingFullscreen = true;
+
+        requestFullscreenMode();
+
+        document.getElementById(
+            "fullscreen-overlay"
+        ).style.display = "none";
+
+        setTimeout(function () {
+            resumingFullscreen = false;
+        }, 1000);
+
+}
 
     function updateTimer() {
         const minutes = Math.floor(duration / 60);
@@ -406,58 +451,62 @@
 
             fullscreenViolations++;
 
-            document.getElementById("security-warnings-input").value =
-                fullscreenViolations;
+            document.getElementById(
+                "security-warnings-input"
+            ).value = fullscreenViolations;
 
             if (fullscreenViolations >= maxFullscreenViolations) {
 
                 alert(
-                    "Exam terminated. You exited fullscreen mode too many times."
+                    "You exited fullscreen too many times.\n\nThe exam will now be submitted."
                 );
 
                 document.getElementById("exam-form").submit();
+
                 return;
             }
 
-            alert(
-                "Fullscreen mode is mandatory.\n\nViolation " +
-                fullscreenViolations +
-                " of " +
-                maxFullscreenViolations
-            );
-
-            setTimeout(function () {
-                requestFullscreenMode();
-            }, 300);
+            document.getElementById(
+                "fullscreen-overlay"
+            ).style.display = "flex";
         }
-    });
 
-    // FIX #8: Warn on tab switch; only submit after too many violations
-    let tabViolations = 0;
-    const maxTabViolations = 2;
+});
 
     document.addEventListener("visibilitychange", function () {
 
         if (!examStarted) return;
 
         if (document.hidden) {
-            tabViolations++;
-
-            document.getElementById("security-warnings-input").value =
-                fullscreenViolations + tabViolations;
-
-            if (tabViolations >= maxTabViolations) {
-                alert("Exam terminated. You left the exam tab too many times.");
-                document.getElementById("exam-form").submit();
-                return;
-            }
 
             alert(
-                "Warning: Leaving the exam tab is not allowed.\n\n" +
-                "Tab violation " + tabViolations + " of " + maxTabViolations + "."
+                "Leaving the exam tab is not allowed.\n\nThe exam will now be submitted."
             );
+
+            document.getElementById("exam-form").submit();
         }
+
     });
+
+    window.addEventListener("blur", function () {
+
+        if (!examStarted) return;
+        if (resumingFullscreen) {
+            return;
+        }
+        if (
+            document.getElementById("fullscreen-overlay").style.display === "flex"
+        ) {
+            return;
+        }
+
+        alert(
+            "Another application or browser window was opened.\n\nThe exam will now be submitted."
+        );
+
+        document.getElementById("exam-form").submit();
+
+});
 
     document.addEventListener("contextmenu", function (e) {
         if (examStarted) {
@@ -466,8 +515,7 @@
         }
     });
 
-    // FIX #12: Block copy/paste only outside of answer input fields.
-    // Students need to paste into code editors.
+    
     function isAnswerField(target) {
         return target.tagName === "TEXTAREA" || target.tagName === "INPUT";
     }
@@ -512,8 +560,6 @@
         }
     });
 
-    // FIX #11: Timer only starts when the student clicks "Start Exam"
-    // (startSecureExam() calls startTimer)
     let timerInterval = null;
 
     function startTimer() {
