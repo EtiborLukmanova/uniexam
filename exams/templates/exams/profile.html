@@ -1,0 +1,49 @@
+{% extends 'exams/base.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+    <h2>My Profile</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card-static p-4 mt-3">
+        <p><strong>Username:</strong> {{ request.user.username }}</p>
+    <p><strong>Role:</strong> {{ profile.role|title }}</p>
+
+    <form method="POST" class="mt-3">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label-custom">First Name</label>
+            <input type="text" name="first_name" class="form-control form-control-custom"
+                value="{{ request.user.first_name }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label-custom">Last Name</label>
+            <input type="text" name="last_name" class="form-control form-control-custom"
+                value="{{ request.user.last_name }}">
+        </div>
+
+        {% if profile.role == 'student' %}
+        <div class="mb-3">
+            <label class="form-label-custom">University ID</label>
+            <input type="text" name="university_id" class="form-control form-control-custom"
+                value="{{ profile.university_id }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label-custom">Group Name</label>
+            <input type="text" name="group_name" class="form-control form-control-custom"
+                value="{{ profile.group_name }}">
+        </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary-custom">Save Changes</button>
+    </form>
+    </div>
+</div>
+{% endblock %}

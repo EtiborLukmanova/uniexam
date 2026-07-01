@@ -286,18 +286,41 @@
                                 {% endfor %}
                             </select>
                         </div>
-
+                        
                         <div class="form-group">
                             <label class="form-label-custom">Duration (minutes)</label>
                             <input type="number" 
-                                   name="duration" 
-                                   class="form-control-custom" 
-                                   placeholder="Enter duration in minutes" 
-                                   min="1"
-                                   required>
+                                name="duration" 
+                                class="form-control-custom" 
+                                placeholder="Enter duration in minutes" 
+                                min="1"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-custom">Start Time (optional)</label>
+                            <input type="datetime-local" 
+                                name="start_time" 
+                                class="form-control-custom">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-custom">End Time (optional)</label>
+                            <input type="datetime-local" 
+                                name="end_time" 
+                                class="form-control-custom">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label-custom">Access Code (optional)</label>
+                            <input type="text" 
+                                name="access_code" 
+                                class="form-control-custom" 
+                                placeholder="Leave blank for no access code">
                         </div>
 
                         <button type="submit" class="btn btn-create">
+                        
                             <i class="bi bi-plus-lg me-2"></i>Create Exam
                         </button>
                     </form>

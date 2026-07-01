@@ -11,4 +11,12 @@ urlpatterns = [
     path('teacher/create-exam/', views.create_exam, name='create_exam'),
     path('api/', include('exams.api_urls')),
     path('dashboard/', views.DashboardAPIView.as_view()),
+    path('subjects/', views.subject_list, name='subject_list'),
+    path('subjects/create/', views.subject_create, name='subject_create'),
+    path('subjects/<int:subject_id>/edit/', views.subject_edit, name='subject_edit'),
+    path('subjects/<int:subject_id>/delete/', views.subject_delete, name='subject_delete'),
+    path('profile/', views.profile_view, name='profile'),
+    path('teacher/exam/<int:exam_id>/questions/', views.question_create, name='question_create'),
+    path('teacher/grade-text/', views.grade_text_answers, name='grade_text_answers'),
+    path('teacher/grade-text/<int:answer_id>/', views.grade_single_answer, name='grade_single_answer'),
 ] 

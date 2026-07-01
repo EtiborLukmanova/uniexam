@@ -146,6 +146,33 @@
         color: white;
     }
 
+    .btn-header-action {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.625rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    }
+
+    .btn-header-action:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-header {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    .btn-outline-header:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: white;
+        color: white;
+    }
+
     .teacher-search-card {
         background: white;
         border-radius: 1rem;
@@ -255,6 +282,42 @@
         .table-card-header { padding: 0.875rem 1rem; }
         .chart-card { padding: 0.875rem; }
     }
+
+    .sort-btn {
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.9rem;
+    border: 1.5px solid transparent;
+    transition: all 0.2s ease;
+    }
+
+    .sort-btn-purple {
+        background: #ede9fe;
+        color: #5b21b6;
+    }
+    .sort-btn-purple:hover, .sort-btn-purple.active {
+        background: #5b21b6;
+        color: white;
+    }
+
+    .sort-btn-green {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .sort-btn-green:hover, .sort-btn-green.active {
+        background: #059669;
+        color: white;
+    }
+
+    .sort-btn-blue {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    .sort-btn-blue:hover, .sort-btn-blue.active {
+        background: #2563eb;
+        color: white;
+    }
 </style>
 {% endblock %}
 
@@ -268,34 +331,64 @@
         </a>
     </li>
     <li class="nav-item">
+        <a class="nav-link" href="{% url 'subject_list' %}">
+            <i class="bi bi-book me-1"></i>Manage Subjects
+        </a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link" href="/admin/">
             <i class="bi bi-gear me-1"></i>Admin Panel
         </a>
     </li>
-    <li class="nav-item">
-        <form method="post" action="{% url 'logout' %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="nav-link btn btn-link p-0">
-                <i class="bi bi-box-arrow-right me-1"></i>Logout
-            </button>
-        </form>
+
+    <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle me-1"></i>{{ request.user.username }}
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <a class="dropdown-item" href="{% url 'profile' %}">
+                    <i class="bi bi-person me-2"></i>Profile
+                </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="dropdown-item text-danger">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </button>
+                </form>
+            </li>
+        </ul>
     </li>
 {% endblock %}
 
 {% block content %}
 <div class="teacher-header">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-8">
+        <div class="row align-items-center mb-3">
+            <div class="col-12">
                 <h1 class="text-white fw-bold mb-2">
                     <i class="bi bi-speedometer2 me-2"></i>Teacher Dashboard
                 </h1>
                 <p class="text-white-50 mb-0">Analytics and exam management</p>
             </div>
-            <div class="col-md-4 text-md-end">
-                <a href="{% url 'export_results_csv' %}" class="btn btn-export">
-                    <i class="bi bi-download me-2"></i>Export Results CSV
-                </a>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'create_exam' %}" class="btn btn-primary-custom btn-header-action">
+                        <i class="bi bi-plus-lg me-2"></i>Create Exam
+                    </a>
+                    <a href="{% url 'grade_text_answers' %}" class="btn btn-outline-header btn-header-action">
+                        <i class="bi bi-pencil-square me-2"></i>Grade Text Answers
+                    </a>
+                    <a href="{% url 'export_results_csv' %}" class="btn btn-export btn-header-action">
+                        <i class="bi bi-download me-2"></i>Export Results CSV
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -396,7 +489,12 @@
             <tbody>
                 {% for exam in exam_stats %}
                     <tr>
-                        <td class="fw-semibold">{{ exam.title }}</td>
+                        <td class="fw-semibold">
+                            {{ exam.title }}
+                            <a href="{% url 'question_create' exam.id %}" class="btn btn-sm btn-outline-primary ms-2">
+                                <i class="bi bi-plus"></i> Questions
+                            </a>
+                        </td>
                         <td>{{ exam.attempts }}</td>
                         <td>
                             <span class="badge-custom {% if exam.avg_score|default:'0'|add:0 >= 60 %}badge-success-custom{% else %}badge-warning-custom{% endif %}">
@@ -461,10 +559,24 @@
     </div>
 
     <div class="table-card">
-        <div class="table-card-header">
+        <div class="table-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <h5 class="mb-0 fw-bold">
                 <i class="bi bi-clock-history me-2"></i>Recent Submissions
             </h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="?{% if query %}q={{ query|urlencode }}&{% endif %}sort=student__username"
+                class="btn btn-sm sort-btn sort-btn-purple {% if sort_by == 'student__username' %}active{% endif %}">
+                    <i class="bi bi-person me-1"></i>Student
+                </a>
+                <a href="?{% if query %}q={{ query|urlencode }}&{% endif %}sort=-score"
+                class="btn btn-sm sort-btn sort-btn-green {% if sort_by == '-score' %}active{% endif %}">
+                    <i class="bi bi-trophy me-1"></i>Top Score
+                </a>
+                <a href="?{% if query %}q={{ query|urlencode }}&{% endif %}sort=-submitted_at"
+                class="btn btn-sm sort-btn sort-btn-blue {% if sort_by == '-submitted_at' %}active{% endif %}">
+                    <i class="bi bi-clock me-1"></i>Newest
+                </a>
+            </div>
         </div>
         <table class="table-custom-teacher">
             <thead>
@@ -497,6 +609,30 @@
             </tbody>
         </table>
     </div>
+
+    {% if recent_results.has_other_pages %}
+    <div class="mt-3 d-flex justify-content-center">
+        <nav>
+            <ul class="pagination">
+                {% if recent_results.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}sort={{ sort_by }}&results_page={{ recent_results.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">{{ recent_results.number }}</span>
+                </li>
+
+                {% if recent_results.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}sort={{ sort_by }}&results_page={{ recent_results.next_page_number }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

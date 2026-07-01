@@ -1,0 +1,109 @@
+{% extends 'exams/base.html' %}
+{% block title %}Add Questions | UniExam{% endblock %}
+
+{% block nav_brand %}UniExam Teacher{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+{% block nav_links %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'teacher_dashboard' %}">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Questions for: {{ exam.title }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card-static p-4 mt-3 mb-4">
+        <h5 class="mb-3">Add New Question</h5>
+        <form method="POST" id="question-form">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label-custom">Question Type</label>
+                <select name="question_type" id="question_type" class="form-control form-control-custom" required onchange="toggleChoices()">
+                    <option value="mcq">Multiple Choice (MCQ)</option>
+                    <option value="text">Text Answer</option>
+                    <option value="code">Code</option>
+                    <option value="sql">SQL</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-custom">Question Text</label>
+                <textarea name="text" class="form-control form-control-custom" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-custom">Points</label>
+                <input type="number" name="points" class="form-control form-control-custom" value="1" min="1" required>
+            </div>
+
+            <div id="choices-section">
+                <label class="form-label-custom">Choices (select the correct one)</label>
+
+                <div class="mb-2 d-flex align-items-center gap-2">
+                    <input type="radio" name="correct_choice" value="0" required>
+                    <input type="text" name="choice_text" class="form-control form-control-custom" placeholder="Choice 1">
+                </div>
+                <div class="mb-2 d-flex align-items-center gap-2">
+                    <input type="radio" name="correct_choice" value="1">
+                    <input type="text" name="choice_text" class="form-control form-control-custom" placeholder="Choice 2">
+                </div>
+                <div class="mb-2 d-flex align-items-center gap-2">
+                    <input type="radio" name="correct_choice" value="2">
+                    <input type="text" name="choice_text" class="form-control form-control-custom" placeholder="Choice 3 (optional)">
+                </div>
+                <div class="mb-2 d-flex align-items-center gap-2">
+                    <input type="radio" name="correct_choice" value="3">
+                    <input type="text" name="choice_text" class="form-control form-control-custom" placeholder="Choice 4 (optional)">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom mt-2">Add Question</button>
+        </form>
+    </div>
+
+    <h5 class="mb-3">Existing Questions ({{ questions|length }})</h5>
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Text</th>
+                <th>Points</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for question in questions %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ question.question_type|upper }}</td>
+                <td>{{ question.text }}</td>
+                <td>{{ question.points }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">No questions yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function toggleChoices() {
+        const type = document.getElementById('question_type').value;
+        const choicesSection = document.getElementById('choices-section');
+        choicesSection.style.display = (type === 'mcq') ? 'block' : 'none';
+    }
+    toggleChoices();
+</script>
+{% endblock %}

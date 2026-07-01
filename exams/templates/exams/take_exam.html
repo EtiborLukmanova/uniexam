@@ -206,8 +206,7 @@
 
 {% block content %}
 
-<div id="exam-data" data-duration="{{ exam.duration_minutes }}"></div>
-
+<div id="exam-data" data-duration="{{ exam.duration_minutes }}" data-remaining="{{ remaining_seconds }}"></div>
 <div id="exam-start-overlay" class="exam-start-overlay">
     <div class="exam-start-box">
         <h2>Start Secure Exam</h2>
@@ -372,7 +371,7 @@
 
 <script>
     const examData = document.getElementById("exam-data");
-    let duration = Number(examData.dataset.duration) * 60;
+    let duration = Number(examData.dataset.remaining);
     let examStarted = false;
 
     let fullscreenViolations = 0;

@@ -1,0 +1,14 @@
+{% extends 'exams/base.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+    <h2>Delete Subject</h2>
+    <p>Are you sure you want to delete <strong>{{ subject.name }}</strong>?</p>
+    <p class="text-danger">This will also delete all exams under this subject.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'subject_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

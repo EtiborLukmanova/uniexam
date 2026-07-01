@@ -1,0 +1,28 @@
+{% extends 'exams/base.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+    <h2>{{ action }} Subject</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-danger">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Subject Name</label>
+            <input type="text" name="name" class="form-control"
+                   value="{{ subject.name|default:'' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Subject Code</label>
+            <input type="text" name="code" class="form-control"
+                   value="{{ subject.code|default:'' }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">{{ action }}</button>
+        <a href="{% url 'subject_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

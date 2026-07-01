@@ -46,7 +46,13 @@ def dashboard(request):
             Q(subject__name__icontains=query) |
             Q(subject__code__icontains=query)
         )
+    results_list_early = Result.objects.filter(student=request.user).values_list('exam_id', flat=True)
+    completed_exam_ids_early = set(results_list_early)
 
+    show_only_pending = request.GET.get('pending') == '1'
+
+    if show_only_pending:
+        exams_queryset = exams_queryset.exclude(id__in=completed_exam_ids_early)
     subjects = Subject.objects.filter(
         exam__in=exams_queryset
     ).distinct().prefetch_related(
@@ -72,6 +78,7 @@ def dashboard(request):
         'query': query,
         'now': now,
         'profile': profile,
+        'show_only_pending': show_only_pending,
     }
 
     return render(request, 'exams/dashboard.html', context)
@@ -82,10 +89,7 @@ DANGEROUS_MODULES = re.compile(
 )
 
 def run_python_code(code, input_data):
-    """
-    Run student-submitted Python code safely.
-    Rejects code that imports dangerous modules.
-    """
+    
     if DANGEROUS_MODULES.search(code):
         return "Error: Use of restricted modules is not allowed."
 
@@ -139,10 +143,7 @@ def normalize_sql_result(rows):
 
 
 def run_sql_query(student_sql, setup_sql):
-    """
-    Run a student SQL query safely.
-    Only allows SELECT statements to prevent destructive SQL.
-    """
+
     stripped = student_sql.strip().rstrip(';')
 
     if not re.match(r'^\s*SELECT\b', stripped, re.IGNORECASE):
@@ -172,7 +173,12 @@ def take_exam(request, exam_id):
     exam = get_object_or_404(Exam, id=exam_id)
 
     entered_code = request.POST.get("code") or request.session.get(f"exam_code_{exam_id}")
+    session_key = f"exam_start_{exam_id}_{request.user.id}"
 
+    if session_key not in request.session:
+        request.session[session_key] = timezone.now().isoformat()
+
+    exam_start_time = timezone.datetime.fromisoformat(request.session[session_key])
     if request.method == "GET":
         get_code = request.GET.get("code")
         if get_code:
@@ -207,6 +213,13 @@ def take_exam(request, exam_id):
     questions = Question.objects.filter(exam=exam).order_by('id')
 
     if request.method == "POST":
+        elapsed_minutes = (timezone.now() - exam_start_time).total_seconds() / 60
+        grace_period = 2  
+
+        if elapsed_minutes > exam.duration_minutes + grace_period:
+            messages.error(request, "Time limit exceeded. Your exam could not be submitted.")
+            request.session.pop(session_key, None)
+            return redirect('dashboard')
         score = 0
         total = 0
 
@@ -331,12 +344,15 @@ def take_exam(request, exam_id):
         result.save()
 
         request.session.pop(f"exam_code_{exam_id}", None)
-
+        request.session.pop(session_key, None)
         return redirect('result', result_id=result.id)
 
+    elapsed_seconds = (timezone.now() - exam_start_time).total_seconds()
+    remaining_seconds = max(0, (exam.duration_minutes * 60) - elapsed_seconds)
     return render(request, 'exams/take_exam.html', {
         'exam': exam,
-        'questions': questions
+        'questions': questions,
+        'remaining_seconds': int(remaining_seconds)
     })
 
 
@@ -378,7 +394,7 @@ def teacher_dashboard(request):
 
     recent_results = Result.objects.select_related(
         'student', 'exam', 'exam__subject'
-    ).order_by('-submitted_at')
+    )
 
     if query:
         exam_stats = exam_stats.filter(
@@ -394,7 +410,19 @@ def teacher_dashboard(request):
             Q(exam__subject__code__icontains=query)
         )
 
-    recent_results = recent_results[:10]
+    
+    sort_by = request.GET.get('sort', '-submitted_at')
+    allowed_sorts = ['submitted_at', '-submitted_at', 'score', '-score', 'student__username', '-student__username']
+
+    if sort_by not in allowed_sorts:
+        sort_by = '-submitted_at'
+
+    recent_results = recent_results.order_by(sort_by)
+
+    results_paginator = Paginator(recent_results, 10)
+    results_page_number = request.GET.get('results_page')
+    recent_results = results_paginator.get_page(results_page_number)
+
     exam_labels_json = json.dumps([exam.title for exam in exam_stats])
     exam_scores_json = json.dumps([
         float(exam.avg_score or 0) for exam in exam_stats
@@ -409,7 +437,8 @@ def teacher_dashboard(request):
         'recent_results': recent_results,
         'query': query,
         'exam_labels_json': exam_labels_json,
-        'exam_scores_json': exam_scores_json
+        'exam_scores_json': exam_scores_json,
+        'sort_by': sort_by,
     }
 
     return render(request, 'exams/teacher_dashboard.html', context)
@@ -452,6 +481,9 @@ def create_exam(request):
         title = request.POST.get('title')
         subject_id = request.POST.get('subject')
         duration = request.POST.get('duration')
+        start_time = request.POST.get('start_time') or None
+        end_time = request.POST.get('end_time') or None
+        access_code = request.POST.get('access_code', '').strip()
 
         subject = get_object_or_404(Subject, id=subject_id)
 
@@ -459,15 +491,19 @@ def create_exam(request):
             title=title,
             subject=subject,
             duration_minutes=duration,
-            created_by=request.user
+            created_by=request.user,
+            start_time=start_time,
+            end_time=end_time,
+            access_code=access_code,
+            is_active=True
         )
 
+        messages.success(request, f'Exam "{title}" created successfully.')
         return redirect('teacher_dashboard')
 
     subjects = Subject.objects.all()
 
     return render(request, 'exams/create_exam.html', {'subjects': subjects})
-
 
 @api_view(['GET'])
 @drf_permission_classes([IsAuthenticated])
@@ -542,3 +578,199 @@ class DashboardAPIView(APIView):
         }
 
         return Response(data)
+
+
+@login_required
+def subject_list(request):
+    profile = Profile.objects.filter(user=request.user).first()
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+    
+    subjects = Subject.objects.all().order_by('name')
+    return render(request, 'exams/subject_list.html', {'subjects': subjects})
+
+
+@login_required
+def subject_create(request):
+    profile = Profile.objects.filter(user=request.user).first()
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip()
+
+        if name and code:
+            Subject.objects.create(name=name, code=code)
+            messages.success(request, f'Subject "{name}" created successfully.')
+            return redirect('subject_list')
+        else:
+            messages.error(request, 'Both name and code are required.')
+
+    return render(request, 'exams/subject_form.html', {'action': 'Create'})
+
+
+@login_required
+def subject_edit(request, subject_id):
+    profile = Profile.objects.filter(user=request.user).first()
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id)
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        code = request.POST.get('code', '').strip()
+
+        if name and code:
+            subject.name = name
+            subject.code = code
+            subject.save()
+            messages.success(request, f'Subject "{name}" updated successfully.')
+            return redirect('subject_list')
+        else:
+            messages.error(request, 'Both name and code are required.')
+
+    return render(request, 'exams/subject_form.html', {
+        'action': 'Edit',
+        'subject': subject
+    })
+
+
+@login_required
+def subject_delete(request, subject_id):
+    profile = Profile.objects.filter(user=request.user).first()
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    subject = get_object_or_404(Subject, id=subject_id)
+
+    if request.method == 'POST':
+        name = subject.name
+        subject.delete()
+        messages.success(request, f'Subject "{name}" deleted.')
+        return redirect('subject_list')
+
+    return render(request, 'exams/subject_confirm_delete.html', {'subject': subject})
+
+
+@login_required
+def profile_view(request):
+    profile = Profile.objects.filter(user=request.user).first()
+
+    if not profile:
+        profile = Profile.objects.create(user=request.user, role='student')
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        university_id = request.POST.get('university_id', '').strip()
+        group_name = request.POST.get('group_name', '').strip()
+
+        request.user.first_name = first_name
+        request.user.last_name = last_name
+        request.user.save()
+
+        profile.university_id = university_id
+        profile.group_name = group_name
+        profile.save()
+
+        messages.success(request, 'Profile updated successfully.')
+        return redirect('profile')
+
+    return render(request, 'exams/profile.html', {'profile': profile})
+
+
+@login_required
+def question_create(request, exam_id):
+    profile = Profile.objects.filter(user=request.user).first()
+
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    if request.method == 'POST':
+        question_type = request.POST.get('question_type')
+        text = request.POST.get('text', '').strip()
+        points = request.POST.get('points', 1)
+
+        if not text:
+            messages.error(request, 'Question text is required.')
+            return redirect('question_create', exam_id=exam.id)
+
+        question = Question.objects.create(
+            exam=exam,
+            question_type=question_type,
+            text=text,
+            points=points
+        )
+
+        if question_type == 'mcq':
+            choice_texts = request.POST.getlist('choice_text')
+            correct_index = request.POST.get('correct_choice')
+
+            for i, choice_text in enumerate(choice_texts):
+                choice_text = choice_text.strip()
+                if choice_text:
+                    Choice.objects.create(
+                        question=question,
+                        text=choice_text,
+                        is_correct=(str(i) == correct_index)
+                    )
+
+        messages.success(request, 'Question added successfully.')
+        return redirect('question_create', exam_id=exam.id)
+
+    questions = Question.objects.filter(exam=exam).order_by('id')
+
+    return render(request, 'exams/question_create.html', {
+        'exam': exam,
+        'questions': questions
+    })
+
+
+@login_required
+def grade_text_answers(request):
+    profile = Profile.objects.filter(user=request.user).first()
+
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    ungraded = StudentAnswer.objects.filter(
+        question__question_type='text',
+        is_reviewed=False
+    ).select_related('question', 'result', 'result__student', 'result__exam')
+
+    return render(request, 'exams/grade_text_answers.html', {
+        'ungraded': ungraded
+    })
+
+
+@login_required
+def grade_single_answer(request, answer_id):
+    profile = Profile.objects.filter(user=request.user).first()
+
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    answer = get_object_or_404(StudentAnswer, id=answer_id)
+
+    if request.method == 'POST':
+        points_awarded = int(request.POST.get('points_awarded', 0))
+        max_points = answer.question.points
+
+        points_awarded = max(0, min(points_awarded, max_points))
+
+        result = answer.result
+        result.score += points_awarded
+        result.save()
+
+        answer.is_correct = (points_awarded == max_points)
+        answer.is_reviewed = True
+        answer.save()
+
+        messages.success(request, 'Answer graded successfully.')
+        return redirect('grade_text_answers')
+
+    return render(request, 'exams/grade_single_answer.html', {'answer': answer})
