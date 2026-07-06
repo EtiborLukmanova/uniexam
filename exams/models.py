@@ -95,6 +95,10 @@ class Result(models.Model):
         return f"{self.student.username} - {self.exam.title}"
 
 
+    class Meta:
+        unique_together = ('student', 'exam')
+        
+
 class StudentAnswer(models.Model):
     result = models.ForeignKey(Result, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(Question, on_delete=models.CASCADE)

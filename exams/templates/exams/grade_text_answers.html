@@ -21,35 +21,37 @@
         {% endfor %}
     {% endif %}
 
-    <table class="table table-bordered mt-3">
-        <thead class="table-dark">
-            <tr>
-                <th>Student</th>
-                <th>Exam</th>
-                <th>Question</th>
-                <th>Answer</th>
-                <th>Max Points</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for answer in ungraded %}
-            <tr>
-                <td>{{ answer.result.student.username }}</td>
-                <td>{{ answer.result.exam.title }}</td>
-                <td>{{ answer.question.text }}</td>
-                <td>{{ answer.text_answer|truncatewords:20 }}</td>
-                <td>{{ answer.question.points }}</td>
-                <td>
-                    <a href="{% url 'grade_single_answer' answer.id %}" class="btn btn-sm btn-primary">Grade</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" class="text-center">No ungraded answers. All caught up!</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="card-static p-3 mt-3">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Exam</th>
+                    <th>Question</th>
+                    <th>Answer</th>
+                    <th>Max Points</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for answer in ungraded %}
+                <tr>
+                    <td>{{ answer.result.student.username }}</td>
+                    <td>{{ answer.result.exam.title }}</td>
+                    <td>{{ answer.question.text }}</td>
+                    <td>{{ answer.text_answer|truncatewords:20 }}</td>
+                    <td>{{ answer.question.points }}</td>
+                    <td>
+                        <a href="{% url 'grade_single_answer' answer.id %}" class="btn btn-sm btn-primary">Grade</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No ungraded answers. All caught up!</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}

@@ -274,15 +274,18 @@
                                    name="title" 
                                    class="form-control-custom" 
                                    placeholder="Enter exam title" 
+                                   value="{{ form_data.title|default:'' }}"
                                    required>
                         </div>
 
                         <div class="form-group">
                             <label class="form-label-custom">Subject</label>
                             <select name="subject" class="form-control-custom" required>
-                                <option value="" disabled selected>Select a subject</option>
+                                <option value="" disabled {% if not form_data.subject %}selected{% endif %}>Select a subject</option>
                                 {% for subject in subjects %}
-                                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                    <option value="{{ subject.id }}" {% if form_data.subject == subject.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ subject.name }}
+                                    </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -294,6 +297,7 @@
                                 class="form-control-custom" 
                                 placeholder="Enter duration in minutes" 
                                 min="1"
+                                value="{{ form_data.duration|default:'' }}"
                                 required>
                         </div>
 
@@ -301,14 +305,16 @@
                             <label class="form-label-custom">Start Time (optional)</label>
                             <input type="datetime-local" 
                                 name="start_time" 
-                                class="form-control-custom">
+                                class="form-control-custom"
+                                value="{{ form_data.start_time|default:'' }}">
                         </div>
 
                         <div class="form-group">
                             <label class="form-label-custom">End Time (optional)</label>
                             <input type="datetime-local" 
                                 name="end_time" 
-                                class="form-control-custom">
+                                class="form-control-custom"
+                                value="{{ form_data.end_time|default:'' }}">
                         </div>
 
                         <div class="form-group">
@@ -316,8 +322,10 @@
                             <input type="text" 
                                 name="access_code" 
                                 class="form-control-custom" 
+                                value="{{ form_data.access_code|default:'' }}"
                                 placeholder="Leave blank for no access code">
                         </div>
+
 
                         <button type="submit" class="btn btn-create">
                         

@@ -1,0 +1,77 @@
+{% extends 'exams/base.html' %}
+{% block title %}Import Questions | UniExam{% endblock %}
+
+{% block nav_brand %}UniExam Teacher{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+{% block nav_links %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'question_create' exam.id %}">
+            <i class="bi bi-arrow-left me-1"></i>Back to Questions
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+    <h2>Import Questions for: {{ exam.title }}</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card-static p-4 mt-3">
+        <h5 class="mb-3">Upload a CSV or Excel file</h5>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <input type="file" name="question_file" class="form-control form-control-custom"
+                       accept=".csv,.xlsx" required>
+            </div>
+            <button type="submit" class="btn btn-primary-custom">Upload & Import</button>
+        </form>
+
+        <hr class="my-4">
+
+        <h6 class="fw-bold">Expected Columns</h6>
+        <table class="table table-sm mt-2">
+            <thead>
+                <tr>
+                    <th>question_type</th>
+                    <th>text</th>
+                    <th>points</th>
+                    <th>choice_1</th>
+                    <th>choice_2</th>
+                    <th>choice_3</th>
+                    <th>choice_4</th>
+                    <th>correct_choice</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>mcq</td>
+                    <td>What is 2+2?</td>
+                    <td>5</td>
+                    <td>3</td>
+                    <td>4</td>
+                    <td>5</td>
+                    <td>6</td>
+                    <td>2</td>
+                </tr>
+                <tr>
+                    <td>text</td>
+                    <td>Explain OOP.</td>
+                    <td>10</td>
+                    <td colspan="5" class="text-muted">leave blank</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="text-muted small">
+            <strong>question_type</strong> must be one of: mcq, text, code, sql.
+            <strong>correct_choice</strong> is the column number (1-4) of the correct answer, only needed for mcq.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,4 +1,5 @@
 import csv
+import io
 import subprocess
 import sys
 import sqlite3
@@ -7,6 +8,7 @@ import re
 import requests
 import json
 
+from openpyxl import load_workbook
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -16,7 +18,7 @@ from django.db.models import Avg, Count, Sum, Q, Prefetch
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-
+from django.db import IntegrityError
 from .models import Profile, Exam, Result, Question, Choice, Subject, StudentAnswer, TestCase
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes as drf_permission_classes
@@ -24,7 +26,7 @@ from rest_framework.response import Response
 from .serializers import ExamSerializer, QuestionSerializer, SubjectSerializer, ChoiceSerializer, ResultSerializer, StudentAnswerSerializer, TestCaseSerializer
 from rest_framework import viewsets
 from rest_framework.views import APIView
-
+from .permissions import IsTeacher, IsTeacherOrReadOnly
 
 def home(request):
     return render(request, 'exams/home.html')
@@ -33,7 +35,9 @@ def home(request):
 @login_required
 def dashboard(request):
     profile = Profile.objects.filter(user=request.user).first()
-    if profile and profile.role == 'teacher':
+    is_preview = request.GET.get('preview') == '1'
+
+    if profile and profile.role == 'teacher' and not is_preview:
         return redirect('teacher_dashboard')
     query = request.GET.get('q', '').strip()
     now = timezone.now()
@@ -226,18 +230,23 @@ def take_exam(request, exam_id):
         ip = get_client_ip(request)
         location = get_location(ip)
 
-        result = Result.objects.create(
-            student=request.user,
-            exam=exam,
-            score=0,
-            total=0,
-            ip_address=ip,
-            location=location
-        )
+        if request.method == "POST":
+            try:
+                result = Result.objects.create(
+                    student=request.user,
+                    exam=exam,
+                    score=0,
+                    total=0,
+                    ip_address=ip,
+                    location=location
+                )
+            
+            except IntegrityError:
+                messages.warning(request, "You have already submitted this exam.")
+                return redirect('dashboard')
 
         for question in questions:
-            if question.question_type != "text":
-                total += question.points
+            total += question.points
 
             selected_choice = None
             text_answer = ""
@@ -477,15 +486,59 @@ def create_exam(request):
     if not profile or profile.role != 'teacher':
         return redirect('dashboard')
 
+    subjects = Subject.objects.all()
+
     if request.method == 'POST':
-        title = request.POST.get('title')
+        title = request.POST.get('title', '').strip()
         subject_id = request.POST.get('subject')
-        duration = request.POST.get('duration')
+        duration = request.POST.get('duration', '').strip()
         start_time = request.POST.get('start_time') or None
         end_time = request.POST.get('end_time') or None
         access_code = request.POST.get('access_code', '').strip()
 
-        subject = get_object_or_404(Subject, id=subject_id)
+        errors = []
+
+        if not title:
+            errors.append("Exam title is required.")
+        elif len(title) > 200:
+            errors.append("Exam title is too long (max 200 characters).")
+
+        if not subject_id:
+            errors.append("You must select a subject.")
+
+        subject = None
+        if subject_id:
+            subject = Subject.objects.filter(id=subject_id).first()
+            if not subject:
+                errors.append("Selected subject does not exist.")
+
+        if not duration:
+            errors.append("Duration is required.")
+        else:
+            try:
+                duration = int(duration)
+                if duration <= 0:
+                    errors.append("Duration must be a positive number.")
+                elif duration > 600:
+                    errors.append("Duration cannot exceed 600 minutes.")
+            except ValueError:
+                errors.append("Duration must be a whole number.")
+                duration = None
+
+        if start_time and end_time:
+            if end_time <= start_time:
+                errors.append("End time must be after start time.")
+
+        if access_code and len(access_code) > 30:
+            errors.append("Access code is too long (max 30 characters).")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return render(request, 'exams/create_exam.html', {
+                'subjects': subjects,
+                'form_data': request.POST,
+            })
 
         Exam.objects.create(
             title=title,
@@ -501,9 +554,8 @@ def create_exam(request):
         messages.success(request, f'Exam "{title}" created successfully.')
         return redirect('teacher_dashboard')
 
-    subjects = Subject.objects.all()
-
     return render(request, 'exams/create_exam.html', {'subjects': subjects})
+
 
 @api_view(['GET'])
 @drf_permission_classes([IsAuthenticated])
@@ -516,13 +568,13 @@ def subject_list(request):
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsTeacherOrReadOnly]  
 
 
 class ExamViewSet(viewsets.ModelViewSet):
     queryset = Exam.objects.all()
     serializer_class = ExamSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacherOrReadOnly]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['subject', 'is_active']
 
@@ -530,7 +582,7 @@ class ExamViewSet(viewsets.ModelViewSet):
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacher]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['exam', 'question_type']
 
@@ -538,7 +590,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
 class ChoiceViewSet(viewsets.ModelViewSet):
     queryset = Choice.objects.all()
     serializer_class = ChoiceSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacher]
 
 
 class ResultViewSet(viewsets.ModelViewSet):
@@ -558,15 +610,23 @@ class StudentAnswerViewSet(viewsets.ModelViewSet):
     serializer_class = StudentAnswerSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return StudentAnswer.objects.all()
+        profile = Profile.objects.filter(user=self.request.user).first()
+        if profile and profile.role == 'teacher':
+            return StudentAnswer.objects.filter(result__exam__created_by=self.request.user)
+        return StudentAnswer.objects.filter(result__student=self.request.user)
+
 
 class TestCaseViewSet(viewsets.ModelViewSet):
     queryset = TestCase.objects.all()
     serializer_class = TestCaseSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacher]
 
 
 class DashboardAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsTeacher]
 
     def get(self, request):
         data = {
@@ -690,6 +750,10 @@ def question_create(request, exam_id):
 
     exam = get_object_or_404(Exam, id=exam_id)
 
+    if exam.created_by != request.user:
+        messages.error(request, "You don't have permission to manage this exam.")
+        return redirect('teacher_dashboard')
+    
     if request.method == 'POST':
         question_type = request.POST.get('question_type')
         text = request.POST.get('text', '').strip()
@@ -739,7 +803,8 @@ def grade_text_answers(request):
 
     ungraded = StudentAnswer.objects.filter(
         question__question_type='text',
-        is_reviewed=False
+        is_reviewed=False,
+        result__exam__created_by=request.user
     ).select_related('question', 'result', 'result__student', 'result__exam')
 
     return render(request, 'exams/grade_text_answers.html', {
@@ -756,7 +821,15 @@ def grade_single_answer(request, answer_id):
 
     answer = get_object_or_404(StudentAnswer, id=answer_id)
 
+    if answer.result.exam.created_by != request.user:
+        messages.error(request, "You don't have permission to grade this answer.")
+        return redirect('grade_text_answers')
+    
     if request.method == 'POST':
+        if answer.is_reviewed:
+            messages.warning(request, 'This answer has already been graded.')
+            return redirect('grade_text_answers')
+
         points_awarded = int(request.POST.get('points_awarded', 0))
         max_points = answer.question.points
 
@@ -774,3 +847,211 @@ def grade_single_answer(request, answer_id):
         return redirect('grade_text_answers')
 
     return render(request, 'exams/grade_single_answer.html', {'answer': answer})
+
+
+@login_required
+def question_import(request, exam_id):
+    profile = Profile.objects.filter(user=request.user).first()
+
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    if exam.created_by != request.user:
+        messages.error(request, "You don't have permission to manage this exam.")
+        return redirect('teacher_dashboard')
+    
+    if request.method == 'POST':
+        uploaded_file = request.FILES.get('question_file')
+
+        if not uploaded_file:
+            messages.error(request, 'Please select a file to upload.')
+            return redirect('question_import', exam_id=exam.id)
+
+        filename = uploaded_file.name.lower()
+
+        try:
+            if filename.endswith('.csv'):
+                rows = parse_csv_file(uploaded_file)
+            elif filename.endswith('.xlsx'):
+                rows = parse_xlsx_file(uploaded_file)
+            else:
+                messages.error(request, 'Only .csv and .xlsx files are supported.')
+                return redirect('question_import', exam_id=exam.id)
+        except Exception as e:
+            messages.error(request, f'Could not read the file: {str(e)}')
+            return redirect('question_import', exam_id=exam.id)
+
+        created_count = 0
+        error_rows = []
+
+        for row_num, row in enumerate(rows, start=2):  
+            try:
+                question_type = row.get('question_type', '').strip().lower()
+                text = row.get('text', '').strip()
+                points = int(row.get('points') or 1)
+
+                if not text or question_type not in ('mcq', 'text', 'code', 'sql'):
+                    error_rows.append(row_num)
+                    continue
+
+                question = Question.objects.create(
+                    exam=exam,
+                    question_type=question_type,
+                    text=text,
+                    points=points
+                )
+
+                if question_type == 'mcq':
+                    choices = [
+                        row.get('choice_1', '').strip(),
+                        row.get('choice_2', '').strip(),
+                        row.get('choice_3', '').strip(),
+                        row.get('choice_4', '').strip(),
+                    ]
+                    correct_index = row.get('correct_choice', '').strip()
+
+                    has_valid_choice = False
+
+                    for i, choice_text in enumerate(choices, start=1):
+                        if choice_text:
+                            is_correct = (str(i) == correct_index)
+                            if is_correct:
+                                has_valid_choice = True
+                            Choice.objects.create(
+                                question=question,
+                                text=choice_text,
+                                is_correct=is_correct
+                            )
+
+                    if not has_valid_choice:
+                        error_rows.append(row_num)
+
+                created_count += 1
+
+            except Exception:
+                error_rows.append(row_num)
+
+        if created_count:
+            messages.success(request, f'{created_count} question(s) imported successfully.')
+
+        if error_rows:
+            messages.warning(request, f'Rows with issues (skipped or incomplete): {", ".join(map(str, error_rows))}')
+
+        return redirect('question_create', exam_id=exam.id)
+
+    return render(request, 'exams/question_import.html', {'exam': exam})
+
+
+def parse_csv_file(uploaded_file):
+    decoded = uploaded_file.read().decode('utf-8-sig')
+    reader = csv.DictReader(io.StringIO(decoded))
+    return list(reader)
+
+
+def parse_xlsx_file(uploaded_file):
+    workbook = load_workbook(uploaded_file, read_only=True, data_only=True)
+    sheet = workbook.active
+
+    rows_iter = sheet.iter_rows(values_only=True)
+    headers = [str(h).strip() if h else '' for h in next(rows_iter)]
+
+    rows = []
+    for row_values in rows_iter:
+        if all(v is None for v in row_values):
+            continue
+        row_dict = {}
+        for header, value in zip(headers, row_values):
+            row_dict[header] = str(value) if value is not None else ''
+        rows.append(row_dict)
+
+    return rows
+
+
+@login_required
+def question_analytics(request, exam_id):
+    profile = Profile.objects.filter(user=request.user).first()
+
+    if not profile or profile.role != 'teacher':
+        return redirect('dashboard')
+
+    exam = get_object_or_404(Exam, id=exam_id)
+
+    if exam.created_by != request.user:
+        messages.error(request, "You don't have permission to manage this exam.")
+        return redirect('teacher_dashboard')
+    
+    questions = Question.objects.filter(exam=exam).order_by('id')
+
+    question_stats = []
+
+    for question in questions:
+        answers = StudentAnswer.objects.filter(question=question)
+        total_attempts = answers.count()
+
+        if question.question_type in ('code', 'sql'):
+            correct_count = answers.filter(is_correct=True).count()
+        elif question.question_type == 'text':
+            reviewed = answers.filter(is_reviewed=True)
+            total_attempts = reviewed.count()
+            correct_count = reviewed.filter(is_correct=True).count()
+        else:
+            correct_count = answers.filter(is_correct=True).count()
+
+        if total_attempts > 0:
+            pass_rate = round((correct_count / total_attempts) * 100, 1)
+        else:
+            pass_rate = None
+
+        question_stats.append({
+            'question': question,
+            'total_attempts': total_attempts,
+            'correct_count': correct_count,
+            'pass_rate': pass_rate,
+        })
+
+    question_stats.sort(key=lambda x: (x['pass_rate'] is None, x['pass_rate'] if x['pass_rate'] is not None else 0))
+
+    return render(request, 'exams/question_analytics.html', {
+        'exam': exam,
+        'question_stats': question_stats
+    })
+
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+    permission_classes = [IsTeacherOrReadOnly]
+
+
+class ExamViewSet(viewsets.ModelViewSet):
+    queryset = Exam.objects.all()
+    serializer_class = ExamSerializer
+    permission_classes = [IsTeacherOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['subject', 'is_active']
+
+
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+    permission_classes = [IsTeacher]  
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['exam', 'question_type']
+
+
+class ChoiceViewSet(viewsets.ModelViewSet):
+    queryset = Choice.objects.all()
+    serializer_class = ChoiceSerializer
+    permission_classes = [IsTeacher]  
+
+
+class TestCaseViewSet(viewsets.ModelViewSet):
+    queryset = TestCase.objects.all()
+    serializer_class = TestCaseSerializer
+    permission_classes = [IsTeacher]  
+
+
+class DashboardAPIView(APIView):
+    permission_classes = [IsTeacher]  

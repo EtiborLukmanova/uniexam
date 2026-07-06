@@ -373,6 +373,21 @@
     const examData = document.getElementById("exam-data");
     let duration = Number(examData.dataset.remaining);
     let examStarted = false;
+    let examSubmitted = false;
+
+    function submitExamOnce() {
+        if (examSubmitted) return;
+        examSubmitted = true;
+
+        const form = document.getElementById("exam-form");
+        const submitBtn = form.querySelector("button[type='submit']");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Submitting...";
+        }
+
+        form.submit();
+    }
 
     let fullscreenViolations = 0;
     const maxFullscreenViolations = 3;
@@ -389,15 +404,21 @@
         }
     }
 
+    let justEnteredFullscreen = false;
+
     function startSecureExam() {
         examStarted = true;
+        justEnteredFullscreen = true;
 
         document.body.classList.add("exam-locked");
         document.getElementById("exam-start-overlay").style.display = "none";
 
         requestFullscreenMode();
-
         startTimer();
+
+        setTimeout(function () {
+            justEnteredFullscreen = false;
+        }, 1500);
     }
 
     let resumingFullscreen = false;
@@ -435,7 +456,7 @@
         }
 
         if (duration <= 0) {
-            document.getElementById("exam-form").submit();
+            submitExamOnce();
             return;
         }
 
@@ -443,35 +464,22 @@
     }
 
     document.addEventListener("fullscreenchange", function () {
-
         if (!examStarted) return;
 
         if (!document.fullscreenElement) {
-
-            fullscreenViolations++;
-
-            document.getElementById(
-                "security-warnings-input"
-            ).value = fullscreenViolations;
-
-            if (fullscreenViolations >= maxFullscreenViolations) {
-
-                alert(
-                    "You exited fullscreen too many times.\n\nThe exam will now be submitted."
-                );
-
-                document.getElementById("exam-form").submit();
-
-                return;
-            }
-
-            document.getElementById(
-                "fullscreen-overlay"
-            ).style.display = "flex";
+            requestFullscreenMode();
         }
+    });
 
-});
-
+    document.addEventListener("keydown", function (e) {
+        if (examStarted && e.key === "Escape") {
+            e.preventDefault();
+            if (!document.fullscreenElement) {
+                requestFullscreenMode();
+            }
+        }
+    }, true); 
+    
     document.addEventListener("visibilitychange", function () {
 
         if (!examStarted) return;
@@ -482,7 +490,7 @@
                 "Leaving the exam tab is not allowed.\n\nThe exam will now be submitted."
             );
 
-            document.getElementById("exam-form").submit();
+            submitExamOnce();
         }
 
     });
@@ -503,7 +511,7 @@
             "Another application or browser window was opened.\n\nThe exam will now be submitted."
         );
 
-        document.getElementById("exam-form").submit();
+        submitExamOnce();
 
 });
 
@@ -556,6 +564,20 @@
             alert(
                 "This shortcut is disabled during the exam."
             );
+        }
+    });
+
+    document.getElementById("exam-form").addEventListener("submit", function (e) {
+        if (examSubmitted) {
+            e.preventDefault();
+            return;
+        }
+        examSubmitted = true;
+
+        const submitBtn = this.querySelector("button[type='submit']");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Submitting...";
         }
     });
 

@@ -1,0 +1,70 @@
+{% extends 'exams/base.html' %}
+{% block title %}Question Analytics | UniExam{% endblock %}
+
+{% block nav_brand %}UniExam Teacher{% endblock %}
+{% block nav_brand_url %}/{% endblock %}
+{% block nav_links %}
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'teacher_dashboard' %}">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Question Analytics: {{ exam.title }}</h2>
+    <p class="text-muted">Questions sorted by pass rate (lowest first) — these may need review.</p>
+
+    <div class="card-static p-3 mt-3">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Question</th>
+                    <th>Type</th>
+                    <th>Attempts</th>
+                    <th>Correct</th>
+                    <th>Pass Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in question_stats %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ stat.question.text|truncatewords:15 }}</td>
+                    <td>
+                        <span class="badge bg-secondary">{{ stat.question.get_question_type_display }}</span>
+                    </td>
+                    <td>{{ stat.total_attempts }}</td>
+                    <td>{{ stat.correct_count }}</td>
+                    <td>
+                        {% if stat.pass_rate is None %}
+                            <span class="badge bg-light text-dark">No data</span>
+                        {% elif stat.pass_rate < 40 %}
+                            <span class="badge bg-danger">{{ stat.pass_rate }}%</span>
+                        {% elif stat.pass_rate < 70 %}
+                            <span class="badge bg-warning text-dark">{{ stat.pass_rate }}%</span>
+                        {% else %}
+                            <span class="badge bg-success">{{ stat.pass_rate }}%</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No questions found for this exam.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <p class="text-muted small">
+            <span class="badge bg-danger">Red</span> = below 40% pass rate (likely confusing or broken question) &nbsp;
+            <span class="badge bg-warning text-dark">Yellow</span> = 40-70% &nbsp;
+            <span class="badge bg-success">Green</span> = above 70%
+        </p>
+    </div>
+</div>
+{% endblock %}
