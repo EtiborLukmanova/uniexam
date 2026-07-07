@@ -17,16 +17,9 @@ from django.core.paginator import Paginator
 from django.db.models import Avg, Count, Sum, Q, Prefetch
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django_filters.rest_framework import DjangoFilterBackend
 from django.db import IntegrityError
 from .models import Profile, Exam, Result, Question, Choice, Subject, StudentAnswer, TestCase
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes as drf_permission_classes
-from rest_framework.response import Response
-from .serializers import ExamSerializer, QuestionSerializer, SubjectSerializer, ChoiceSerializer, ResultSerializer, StudentAnswerSerializer, TestCaseSerializer
-from rest_framework import viewsets
-from rest_framework.views import APIView
-from .permissions import IsTeacher, IsTeacherOrReadOnly
+
 
 def home(request):
     return render(request, 'exams/home.html')
@@ -93,7 +86,7 @@ DANGEROUS_MODULES = re.compile(
 )
 
 def run_python_code(code, input_data):
-    
+
     if DANGEROUS_MODULES.search(code):
         return "Error: Use of restricted modules is not allowed."
 
@@ -213,12 +206,11 @@ def take_exam(request, exam_id):
         messages.error(request, "This exam deadline has passed.")
         return redirect('dashboard')
 
-     
     questions = Question.objects.filter(exam=exam).order_by('id')
 
     if request.method == "POST":
         elapsed_minutes = (timezone.now() - exam_start_time).total_seconds() / 60
-        grace_period = 2  
+        grace_period = 2
 
         if elapsed_minutes > exam.duration_minutes + grace_period:
             messages.error(request, "Time limit exceeded. Your exam could not be submitted.")
@@ -230,20 +222,18 @@ def take_exam(request, exam_id):
         ip = get_client_ip(request)
         location = get_location(ip)
 
-        if request.method == "POST":
-            try:
-                result = Result.objects.create(
-                    student=request.user,
-                    exam=exam,
-                    score=0,
-                    total=0,
-                    ip_address=ip,
-                    location=location
-                )
-            
-            except IntegrityError:
-                messages.warning(request, "You have already submitted this exam.")
-                return redirect('dashboard')
+        try:
+            result = Result.objects.create(
+                student=request.user,
+                exam=exam,
+                score=0,
+                total=0,
+                ip_address=ip,
+                location=location
+            )
+        except IntegrityError:
+            messages.warning(request, "You have already submitted this exam.")
+            return redirect('dashboard')
 
         for question in questions:
             total += question.points
@@ -419,7 +409,6 @@ def teacher_dashboard(request):
             Q(exam__subject__code__icontains=query)
         )
 
-    
     sort_by = request.GET.get('sort', '-submitted_at')
     allowed_sorts = ['submitted_at', '-submitted_at', 'score', '-score', 'student__username', '-student__username']
 
@@ -557,95 +546,12 @@ def create_exam(request):
     return render(request, 'exams/create_exam.html', {'subjects': subjects})
 
 
-@api_view(['GET'])
-@drf_permission_classes([IsAuthenticated])
-def subject_list(request):
-    subjects = Subject.objects.all()
-    serializer = SubjectSerializer(subjects, many=True)
-    return Response(serializer.data)
-
-
-class SubjectViewSet(viewsets.ModelViewSet):
-    queryset = Subject.objects.all()
-    serializer_class = SubjectSerializer
-    permission_classes = [IsTeacherOrReadOnly]  
-
-
-class ExamViewSet(viewsets.ModelViewSet):
-    queryset = Exam.objects.all()
-    serializer_class = ExamSerializer
-    permission_classes = [IsTeacherOrReadOnly]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['subject', 'is_active']
-
-
-class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all()
-    serializer_class = QuestionSerializer
-    permission_classes = [IsTeacher]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['exam', 'question_type']
-
-
-class ChoiceViewSet(viewsets.ModelViewSet):
-    queryset = Choice.objects.all()
-    serializer_class = ChoiceSerializer
-    permission_classes = [IsTeacher]
-
-
-class ResultViewSet(viewsets.ModelViewSet):
-    serializer_class = ResultSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['exam']
-
-    def get_queryset(self):
-        if self.request.user.is_staff:
-            return Result.objects.all()
-        return Result.objects.filter(student=self.request.user)
-
-
-class StudentAnswerViewSet(viewsets.ModelViewSet):
-    queryset = StudentAnswer.objects.all()
-    serializer_class = StudentAnswerSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        if self.request.user.is_staff:
-            return StudentAnswer.objects.all()
-        profile = Profile.objects.filter(user=self.request.user).first()
-        if profile and profile.role == 'teacher':
-            return StudentAnswer.objects.filter(result__exam__created_by=self.request.user)
-        return StudentAnswer.objects.filter(result__student=self.request.user)
-
-
-class TestCaseViewSet(viewsets.ModelViewSet):
-    queryset = TestCase.objects.all()
-    serializer_class = TestCaseSerializer
-    permission_classes = [IsTeacher]
-
-
-class DashboardAPIView(APIView):
-    permission_classes = [IsTeacher]
-
-    def get(self, request):
-        data = {
-            "subjects": Subject.objects.count(),
-            "exams": Exam.objects.count(),
-            "questions": Question.objects.count(),
-            "students": User.objects.count(),
-            "results": Result.objects.count(),
-        }
-
-        return Response(data)
-
-
 @login_required
 def subject_list(request):
     profile = Profile.objects.filter(user=request.user).first()
     if not profile or profile.role != 'teacher':
         return redirect('dashboard')
-    
+
     subjects = Subject.objects.all().order_by('name')
     return render(request, 'exams/subject_list.html', {'subjects': subjects})
 
@@ -753,7 +659,7 @@ def question_create(request, exam_id):
     if exam.created_by != request.user:
         messages.error(request, "You don't have permission to manage this exam.")
         return redirect('teacher_dashboard')
-    
+
     if request.method == 'POST':
         question_type = request.POST.get('question_type')
         text = request.POST.get('text', '').strip()
@@ -824,7 +730,7 @@ def grade_single_answer(request, answer_id):
     if answer.result.exam.created_by != request.user:
         messages.error(request, "You don't have permission to grade this answer.")
         return redirect('grade_text_answers')
-    
+
     if request.method == 'POST':
         if answer.is_reviewed:
             messages.warning(request, 'This answer has already been graded.')
@@ -861,7 +767,7 @@ def question_import(request, exam_id):
     if exam.created_by != request.user:
         messages.error(request, "You don't have permission to manage this exam.")
         return redirect('teacher_dashboard')
-    
+
     if request.method == 'POST':
         uploaded_file = request.FILES.get('question_file')
 
@@ -886,7 +792,7 @@ def question_import(request, exam_id):
         created_count = 0
         error_rows = []
 
-        for row_num, row in enumerate(rows, start=2):  
+        for row_num, row in enumerate(rows, start=2):
             try:
                 question_type = row.get('question_type', '').strip().lower()
                 text = row.get('text', '').strip()
@@ -981,7 +887,7 @@ def question_analytics(request, exam_id):
     if exam.created_by != request.user:
         messages.error(request, "You don't have permission to manage this exam.")
         return redirect('teacher_dashboard')
-    
+
     questions = Question.objects.filter(exam=exam).order_by('id')
 
     question_stats = []
@@ -1017,41 +923,3 @@ def question_analytics(request, exam_id):
         'exam': exam,
         'question_stats': question_stats
     })
-
-
-class SubjectViewSet(viewsets.ModelViewSet):
-    queryset = Subject.objects.all()
-    serializer_class = SubjectSerializer
-    permission_classes = [IsTeacherOrReadOnly]
-
-
-class ExamViewSet(viewsets.ModelViewSet):
-    queryset = Exam.objects.all()
-    serializer_class = ExamSerializer
-    permission_classes = [IsTeacherOrReadOnly]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['subject', 'is_active']
-
-
-class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all()
-    serializer_class = QuestionSerializer
-    permission_classes = [IsTeacher]  
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['exam', 'question_type']
-
-
-class ChoiceViewSet(viewsets.ModelViewSet):
-    queryset = Choice.objects.all()
-    serializer_class = ChoiceSerializer
-    permission_classes = [IsTeacher]  
-
-
-class TestCaseViewSet(viewsets.ModelViewSet):
-    queryset = TestCase.objects.all()
-    serializer_class = TestCaseSerializer
-    permission_classes = [IsTeacher]  
-
-
-class DashboardAPIView(APIView):
-    permission_classes = [IsTeacher]  

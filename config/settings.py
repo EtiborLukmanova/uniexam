@@ -4,8 +4,10 @@ Django settings for config project.
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'change-me-in-production')
 
@@ -22,9 +24,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'exams',
-    'rest_framework',
-    'django_filters',
-    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -58,12 +57,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'uniexam',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.environ.get('DB_NAME', 'uniexam'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -87,22 +86,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend'
-    ],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-}
-
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'UniExam API',
-    'DESCRIPTION': 'Online Examination System API',
-    'VERSION': '1.0.0',
-}

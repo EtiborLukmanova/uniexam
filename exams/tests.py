@@ -1,9 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
-from rest_framework.test import APIClient
-from rest_framework import status
-
 from .models import Profile, Subject, Exam, Question, Choice, Result, StudentAnswer
 
 
@@ -157,45 +154,6 @@ class ExamValidationTests(BaseTestCase):
             'duration': -5,
         })
         self.assertFalse(Exam.objects.filter(title='Bad Exam').exists())
-
-
-class APIPermissionTests(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-
-        self.teacher = User.objects.create_user(username='api_teacher', password='pass12345')
-        Profile.objects.create(user=self.teacher, role='teacher')
-
-        self.student = User.objects.create_user(username='api_student', password='pass12345')
-        Profile.objects.create(user=self.student, role='student')
-
-        self.subject = Subject.objects.create(name='API Subject', code='API101')
-        self.exam = Exam.objects.create(
-            title='API Exam', subject=self.subject, duration_minutes=20,
-            created_by=self.teacher, is_active=True
-        )
-        self.question = Question.objects.create(
-            exam=self.exam, question_type='mcq', text='Q?', points=5
-        )
-
-    def test_student_cannot_access_questions_api(self):
-        self.client.force_authenticate(user=self.student)
-        response = self.client.get('/api/questions/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_teacher_can_access_questions_api(self):
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.get('/api/questions/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_student_cannot_create_subject_via_api(self):
-        self.client.force_authenticate(user=self.student)
-        response = self.client.post('/api/subjects/', {'name': 'Hacked', 'code': 'HK101'})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    def test_anonymous_cannot_access_results_api(self):
-        response = self.client.get('/api/results/')
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class SubjectCRUDTests(BaseTestCase):
